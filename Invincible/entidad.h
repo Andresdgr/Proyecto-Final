@@ -1,28 +1,43 @@
 #ifndef ENTIDAD_H
 #define ENTIDAD_H
 
-#include <QObject>
-#include <QGraphicsPixmapItem>
-#include <QString>
+class Entidad {
 
-class Entidad : public QObject, public QGraphicsPixmapItem {
-    Q_OBJECT
-protected:
-    double posX;
-    double posY;
-    double velX;
-    double velY;
+public: //Metodos Todo lo que es accesible desde cualquier parte del programa.
 
-public:
-    Entidad(double x, double y, QGraphicsItem* parent = nullptr);
-    virtual ~Entidad() {} // Destructor virtual para correcta destrucción en cascada
+    Entidad(float x, float y, float vida, float masa);
 
-    virtual void actualizarPosicion() = 0;
-    virtual void cargarSprite(const QString& rutaSprite) = 0;
+    virtual ~Entidad();
 
-    double getPosX() const { return posX; }
-    double getPosY() const { return posY; }
-    void setVelocidad(double vx, double vy) { velX = vx; velY = vy; }
+    virtual void update(float dt) = 0;
+
+
+    virtual void recibirDanio(float cantidad);
+
+    float getX()          const;
+    float getY()          const;
+    float getVelX()       const;
+    float getVelY()       const;
+    float getVida()       const;
+    float getVidaMaxima() const;
+    float getMasa()       const;
+    bool  isActivo()      const;
+
+protected://el exterior solo puede leerlos mediante getters const
+
+    float x;
+    float y;
+
+    float velX;
+    float velY;
+
+    float vida;
+    float vidaMaxima;
+
+    float masa;
+
+    bool activo;
+
 };
 
-#endif // ENTIDAD_H
+#endif
