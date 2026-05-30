@@ -19,6 +19,7 @@ SOURCES += \
     main.cpp \
     mainwindow.cpp \
     nivel.cpp \
+    nivel2.cpp \
     physicsengine.cpp \
     portal.cpp
 
@@ -32,6 +33,7 @@ HEADERS += \
     jugador.h \
     mainwindow.h \
     nivel.h \
+    nivel2.h \
     physicsengine.h \
     portal.h
 

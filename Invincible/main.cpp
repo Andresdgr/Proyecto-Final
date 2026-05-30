@@ -1,12 +1,10 @@
+#include "mainwindow.h"
 #include <QApplication>
 
 int main(int argc, char *argv[])
 {
-    QApplication app(argc, argv);
-
-    // Aquí irá MainWindow cuando implementemos la capa GUI
-    // MainWindow w;
-    // w.show();
-
-    return app.exec();
+    QApplication a(argc, argv); // Inicializa el entorno gráfico de Qt
+    MainWindow w;               // Al crearse, se ejecuta el constructor de MainWindow
+    w.show();                   // Hace visible la ventana en la pantalla
+    return a.exec();            // Entra en el "bucle de eventos" (mantiene vivo el programa)
 }

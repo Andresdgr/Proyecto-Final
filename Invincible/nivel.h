@@ -5,6 +5,7 @@
 #include <QTimer>
 #include <QObject>
 #include <vector>
+#include "jugador.h"
 
 class Nivel : public QObject {
     Q_OBJECT
@@ -18,6 +19,8 @@ public:
     Nivel(QGraphicsScene* escenaCompartida);
     virtual ~Nivel();
 
+    QGraphicsScene* getEscena() const { return escena; }
+    Jugador* obtenerJugador() const { return jugador; }
     // Métodos obligatorios para cada nivel
     virtual void inicializarEscenario() = 0;
     virtual void verificarColisiones() = 0;
