@@ -120,6 +120,16 @@ void Jugador::atacar()
     tiempoCarga = 0.0f;
 }
 
+void Jugador::detenerAtaque() {
+    // 1. Restablecer el daño actual a cero para que dejen de contar las colisiones de ataque
+    this->danioActual = 0.0f;
+
+    // this->atacando = false;
+
+    // Cambio de sprites, restablece el pixmap
+    // this->setPixmap(QPixmap(".../Sprites/Invincible.png"));
+}
+
 // ── recibirDanio ────────────────────────────────────────────────
 void Jugador::recibirDanio(float cantidad)
 {

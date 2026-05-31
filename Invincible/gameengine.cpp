@@ -138,5 +138,8 @@ void GameEngine::teclaSoltada(int key) {
                  key == Qt::Key_S || key == Qt::Key_Down) {
             nivelActual->getJugador()->detenerY();
         }
+        else if (key == Qt::Key_Space) {
+            nivelActual->getJugador()->detenerAtaque();
+        }
     }
 }

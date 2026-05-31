@@ -48,11 +48,12 @@ public:
     void moverY(float direccion);
     void detenerY();
 
+
     // ── Instrucciones de ataque ──────────────────────────────
     void iniciarCarga();
     void soltarCarga();
     void atacar();
-
+    void detenerAtaque();
     // ── Sobreescritura con lógica de invulnerabilidad ────────
     void recibirDanio(float cantidad) override;
 

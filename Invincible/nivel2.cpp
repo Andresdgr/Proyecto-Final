@@ -1,5 +1,6 @@
 #include "nivel2.h"
 #include "jugador.h"
+#include "variante.h"
 #include <QGraphicsPixmapItem>
 #include <utility>
 #include "physicsengine.h"
@@ -17,8 +18,8 @@ Nivel2::Nivel2(QGraphicsScene* escenaCompartida)
 }
 
 Nivel2::~Nivel2() {
-    qDeleteAll(clones);
-    clones.clear();
+    qDeleteAll(variantes);
+    variantes.clear();
 
     qDeleteAll(portales);
     portales.clear();
@@ -47,7 +48,7 @@ void Nivel2::actualizarCicloJuego() {
 
     tiempoSpawn += dt;
     if (tiempoSpawn >= frecuenciaSpawn) {
-        spawnClon();
+        spawnVariante();
         tiempoSpawn = 0.0f;
     }
 
@@ -57,11 +58,11 @@ void Nivel2::actualizarCicloJuego() {
     }
 
     // 3. Actualizar Enemigos
-    for (Enemigo* c : std::as_const(clones)) {
+    for (Enemigo* c : std::as_const(variantes)) {
         if (c->isActivo() && jugador) {
             c->update(dt, *jugador);
 
-            // RESTAURACIÓN VISUAL: Si el clon fue golpeado, recupera su opacidad gradualmente
+            // Si el clon fue golpeado, recupera su opacidad gradualmente
             if (c->opacity() < 1.0f) {
                 c->setOpacity(c->opacity() + dt * 4.0f); // Retorna al estado sólido (1.0)
                 if (c->opacity() > 1.0f) c->setOpacity(1.0f);
@@ -87,7 +88,7 @@ void Nivel2::verificarColisiones() {
     float xJ = jugador->getX();
     float yJ = jugador->getY();
 
-    for (Enemigo* c : std::as_const(clones)) {
+    for (Enemigo* c : std::as_const(variantes)) {
         if (!c->isActivo()) continue;
 
         // Lógica AABB adaptada de tu GameEngine
@@ -100,21 +101,21 @@ void Nivel2::verificarColisiones() {
     }
 }
 
-void Nivel2::spawnClon() {
+void Nivel2::spawnVariante() {
     // 1. Definir coordenadas aleatorias dentro de los límites de la escena
     float xAleatorio = 100.0f + (rand() % 600);
     float yAleatorio = 100.0f + (rand() % 400);
 
     // 2. Instanciar el enemigo
-    Enemigo* nuevoClon = new Enemigo(xAleatorio, yAleatorio, 100.0f, 75.0f);
+    Enemigo* nuevaVariante = new Variante(xAleatorio, yAleatorio, 100.0f, 75.0f, 10.0f, 100);
 
     // 3. Vincular el Sprite de la otra dimensión
-    nuevoClon->setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Viltrumincible.png"));
-    nuevoClon->setPos(xAleatorio, yAleatorio);
+    nuevaVariante->setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Viltrumincible_85x85.png"));
+    nuevaVariante->setPos(xAleatorio, yAleatorio);
 
     // 4. Registrar en el contenedor lógico y añadir a la escena de Qt
-    clones.append(nuevoClon);
-    escena->addItem(nuevoClon);
+    variantes.append(nuevaVariante);
+    escena->addItem(nuevaVariante);
 }
 
 void Nivel2::verificarAtaqueJugador() {
@@ -124,7 +125,7 @@ void Nivel2::verificarAtaqueJugador() {
     float yJ = jugador->getY();
     float danio = jugador->getDanioActual();
 
-    for (Enemigo* c : std::as_const(clones)) {
+    for (Enemigo* c : std::as_const(variantes)) {
         if (!c->isActivo()) continue;
 
         // Determinar proximidad en un rango de ataque (ej. 80 píxeles)
@@ -138,10 +139,10 @@ void Nivel2::verificarAtaqueJugador() {
 }
 
 void Nivel2::limpiarInactivos() {
-    for (int i = clones.size() - 1; i >= 0; i--) {
-        if (!clones[i]->isActivo()) {
-            delete clones[i];
-            clones.removeAt(i);
+    for (int i = variantes.size() - 1; i >= 0; i--) {
+        if (!variantes[i]->isActivo()) {
+            delete variantes[i];
+            variantes.removeAt(i);
         }
     }
 }

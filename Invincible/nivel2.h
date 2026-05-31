@@ -26,7 +26,7 @@ public slots:
 private:
     PhysicsEngine* physics;
     // Contenedores específicos del Nivel 2 extraídos del GameEngine
-    QList<Enemigo*> clones;
+    QList<Enemigo*> variantes;
     QList<Portal*> portales;
 
     // Variables de control de tiempo del Nivel 2
@@ -35,7 +35,7 @@ private:
     float frecuenciaSpawn;
 
     // Métodos internos
-    void spawnClon();
+    void spawnVariante();
     void limpiarInactivos();
 };
 

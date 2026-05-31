@@ -25,6 +25,7 @@ public:
     // Métodos obligatorios para cada nivel
     virtual void inicializarEscenario() = 0;
     virtual void verificarColisiones() = 0;
+    virtual void verificarAtaqueJugador() = 0;
 
 public slots:
     virtual void actualizarCicloJuego() = 0; // Se ejecuta en cada tick del QTimer
