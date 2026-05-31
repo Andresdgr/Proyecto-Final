@@ -19,6 +19,7 @@ public:
     Nivel(QGraphicsScene* escenaCompartida);
     virtual ~Nivel();
 
+    Jugador* getJugador() const { return jugador; }
     QGraphicsScene* getEscena() const { return escena; }
     Jugador* obtenerJugador() const { return jugador; }
     // Métodos obligatorios para cada nivel

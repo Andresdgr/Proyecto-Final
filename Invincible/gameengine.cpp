@@ -101,3 +101,42 @@ Jugador* GameEngine::getJugador() const
 {
     return nivelActual ? nivelActual->obtenerJugador() : nullptr;
 }
+
+void GameEngine::teclaPresionada(int key) {
+    if (nivelActual && nivelActual->getJugador()) {
+        // Movimiento Horizontal
+        if (key == Qt::Key_A || key == Qt::Key_Left) {
+            nivelActual->getJugador()->moverX(-40);
+        }
+        else if (key == Qt::Key_D || key == Qt::Key_Right) {
+            nivelActual->getJugador()->moverX(40);
+        }
+        // AGREGADO: Movimiento Vertical
+        else if (key == Qt::Key_W || key == Qt::Key_Up) {
+            nivelActual->getJugador()->moverY(-40);
+        }
+        else if (key == Qt::Key_S || key == Qt::Key_Down) {
+            nivelActual->getJugador()->moverY(40);
+        }
+        // Acción de Ataque con la Barra Espaciadora
+        else if (key == Qt::Key_Space) {
+            nivelActual->getJugador()->atacar(); // Ejecuta la acción en la entidad
+            nivelActual->verificarAtaqueJugador(); // Evalúa impactos en el escenario
+        }
+    }
+}
+
+void GameEngine::teclaSoltada(int key) {
+    if (nivelActual && nivelActual->getJugador()) {
+        // Detener Movimiento Horizontal existente
+        if (key == Qt::Key_A || key == Qt::Key_Left ||
+            key == Qt::Key_D || key == Qt::Key_Right) {
+            nivelActual->getJugador()->detenerX();
+        }
+        // AGREGADO: Detener Movimiento Vertical al soltar las teclas correspondientes
+        else if (key == Qt::Key_W || key == Qt::Key_Up ||
+                 key == Qt::Key_S || key == Qt::Key_Down) {
+            nivelActual->getJugador()->detenerY();
+        }
+    }
+}

@@ -12,6 +12,7 @@ Jugador::Jugador(float x, float y)
     , tiempoInvulnerable(0.0f)
     , danioActual(0.0f)
 {
+    setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Invincible_85x85.png"));
 }
 
 // ── Destructor ──────────────────────────────────────────────────
@@ -25,10 +26,11 @@ void Jugador::update(float dt)
     // 1. Actualizar timer de carga
     if (cargando) {
         tiempoCarga += dt;
+        velY = 0.0f;
         velX = 0.0f; // vulnerable durante la carga
     }
 
-    // 2. Actualizar timer de invulnerabilidad
+    // 2. Timer de invulnerabilidad
     if (invulnerable) {
         tiempoInvulnerable -= dt;
         if (tiempoInvulnerable <= 0.0f) {
@@ -39,6 +41,9 @@ void Jugador::update(float dt)
 
     // 3. Aplicar movimiento
     x += velX * dt;
+    y += velY * dt;
+    // 4. Actualizar la posición visual en la escena de Qt
+    setPos(x, y);
 }
 
 // ── moverX ──────────────────────────────────────────────────────
@@ -49,11 +54,23 @@ void Jugador::moverX(float direccion)
 }
 
 // ── detener ─────────────────────────────────────────────────────
-void Jugador::detener()
+void Jugador::detenerX()
 {
     if (cargando) return;
     velX = 0.0f;
 }
+// ── MOVIMIENTO VERTICAL ──────────────────────
+void Jugador::moverY(float direccion)
+{
+    if (cargando) return; // No puede moverse mientras carga el ataque
+    velY = direccion * velBase;
+}
+void Jugador::detenerY()
+{
+    if (cargando) return;
+    velY = 0.0f;
+}
+
 
 // ── iniciarCarga ────────────────────────────────────────────────
 void Jugador::iniciarCarga()

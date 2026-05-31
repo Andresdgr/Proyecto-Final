@@ -6,6 +6,24 @@
 
 class Jugador : public Entidad {
 
+private:
+
+    // ── Característica: veloz ────────────────────────────────
+    float velBase;
+
+    // ── Característica: fortachón ────────────────────────────
+    bool  cargando;
+    float tiempoCarga;
+
+    // ── Sistema de combo ─────────────────────────────────────
+    uint8_t hitStreak;
+    bool    comboActivo;
+
+    // ── Invulnerabilidad post-golpe ──────────────────────────
+    bool  invulnerable;
+    float tiempoInvulnerable;
+
+
 public:
 
     // ── Constantes de diseño del personaje ──────────────────
@@ -25,7 +43,10 @@ public:
 
     // ── Instrucciones de movimiento (llamadas desde GUI) ─────
     void moverX(float direccion);
-    void detener();
+    void detenerX();
+
+    void moverY(float direccion);
+    void detenerY();
 
     // ── Instrucciones de ataque ──────────────────────────────
     void iniciarCarga();
@@ -42,24 +63,7 @@ public:
     bool    isCargando()       const;
     bool    isComboActivo()    const;
 
-private:
 
-    // ── Característica: veloz ────────────────────────────────
-    float velBase;
-
-    // ── Característica: fortachón ────────────────────────────
-    bool  cargando;
-    float tiempoCarga;
-
-    // ── Sistema de combo ─────────────────────────────────────
-    uint8_t hitStreak;
-    bool    comboActivo;
-
-    // ── Invulnerabilidad post-golpe ──────────────────────────
-    bool  invulnerable;
-    float tiempoInvulnerable;
-
-    // ── Resultado del último ataque ──────────────────────────
     float danioActual;
 
 };

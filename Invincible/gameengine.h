@@ -30,6 +30,9 @@ public:
     // ── Acceso al jugador (para input desde GameWidget) ──────
     Jugador* getJugador() const;
 
+    void teclaPresionada(int key);
+    void teclaSoltada(int key);
+
 private:
     // Puntero polimórfico a la clase base del nivel activo
     // Reemplaza las listas de enemigos, portales y el puntero directo al jugador.
