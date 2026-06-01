@@ -34,6 +34,10 @@ private:
     float tiempoSpawn;
     float frecuenciaSpawn;
 
+    // Control de la secuencia de invasión
+    uint8_t indiceSecuencia;
+    static constexpr uint8_t MAX_SIMULTANEOS = 6;
+
     // Métodos internos
     void spawnVariante();
     void limpiarInactivos();

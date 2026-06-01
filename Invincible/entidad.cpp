@@ -62,3 +62,11 @@ float Entidad::getVida()       const { return vida;       }
 float Entidad::getVidaMaxima() const { return vidaMaxima; }
 float Entidad::getMasa()       const { return masa;       }
 bool  Entidad::isActivo()      const { return activo;     }
+
+void Entidad::limitarBordes(float limiteX, float limiteY, float anchoSprite, float altoSprite) {
+    if (x < 0.0f) x = 0.0f;
+    if (x > limiteX - anchoSprite) x = limiteX - anchoSprite;
+
+    if (y < 0.0f) y = 0.0f;
+    if (y > limiteY - altoSprite) y = limiteY - altoSprite;
+}

@@ -41,6 +41,8 @@ protected:
     float masa;
 
     bool activo;
+
+    void limitarBordes(float limiteX, float limiteY, float anchoSprite, float altoSprite);
 };
 
 #endif

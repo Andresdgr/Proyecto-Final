@@ -42,6 +42,8 @@ void Jugador::update(float dt)
     // 3. Aplicar movimiento
     x += velX * dt;
     y += velY * dt;
+
+    limitarBordes(800.0f, 600.0f, 85.0f, 85.0f);
     // 4. Actualizar la posición visual en la escena de Qt
     setPos(x, y);
 }

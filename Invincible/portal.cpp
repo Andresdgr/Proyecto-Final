@@ -34,6 +34,7 @@ Portal::Portal(float cx, float cy, float radioOrbital,
     , fase(fase)
     , esPuntoSpawn(true)
 {
+    setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Portal.png"));
 }
 
 // ── Destructor ───────────────────────────────────────────────────
@@ -74,6 +75,9 @@ void Portal::updateConPhysics(float dt, const PhysicsEngine& physics)
 
         x = static_cast<float>(nuevaPos.x());
         y = static_cast<float>(nuevaPos.y());
+
+        // Sincronizar las coordenadas matemáticas con la interfaz gráfica
+        setPosicion(x, y);
     }
 }
 

@@ -15,15 +15,15 @@ void Variante::update(float dt, const Jugador& jugador) {
     float dx = jugador.getX() - x;
     float dy = jugador.getY() - y;
     float dist = std::sqrt(dx*dx + dy*dy);
-    if (dist > 1.0f) {
-        velX = (dx / dist) * 50.0f;  // velocidad de 50 px/s
-        velY = (dy / dist) * 50.0f;
-    }
+    velX = (dx / dist) * 50.0f;  // velocidad de 50 px/s
+    velY = (dy / dist) * 50.0f;
     moverse(dt);
 }
 
 void Variante::moverse(float dt) {
     x += velX * dt;
     y += velY * dt;
+    limitarBordes(800.0f, 600.0f, 85.0f, 85.0f);
     setPosicion(x, y);  // Sincroniza con QGraphicsPixmapItem
 }
+

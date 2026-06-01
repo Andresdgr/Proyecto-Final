@@ -1,6 +1,7 @@
 #include "nivel2.h"
 #include "jugador.h"
 #include "variante.h"
+#include "varianteportal.h"
 #include <QGraphicsPixmapItem>
 #include <utility>
 #include "physicsengine.h"
@@ -12,7 +13,8 @@ Nivel2::Nivel2(QGraphicsScene* escenaCompartida)
     : Nivel(escenaCompartida),
     tiempoRestante(60.0f),
     tiempoSpawn(0.0f),
-    frecuenciaSpawn(4.0f)
+    frecuenciaSpawn(4.0f),
+    indiceSecuencia(0)
 {
     physics = new PhysicsEngine(DifficultyConfig::normal());
 }
@@ -47,7 +49,7 @@ void Nivel2::actualizarCicloJuego() {
     if (tiempoRestante < 0.0f) tiempoRestante = 0.0f;
 
     tiempoSpawn += dt;
-    if (tiempoSpawn >= frecuenciaSpawn) {
+    if (tiempoSpawn >= frecuenciaSpawn && variantes.size() < MAX_SIMULTANEOS) {
         spawnVariante();
         tiempoSpawn = 0.0f;
     }
@@ -102,20 +104,52 @@ void Nivel2::verificarColisiones() {
 }
 
 void Nivel2::spawnVariante() {
-    // 1. Definir coordenadas aleatorias dentro de los límites de la escena
-    float xAleatorio = 100.0f + (rand() % 600);
-    float yAleatorio = 100.0f + (rand() % 400);
+    if (variantes.size() >= MAX_SIMULTANEOS) return;
 
-    // 2. Instanciar el enemigo
-    Enemigo* nuevaVariante = new Variante(xAleatorio, yAleatorio, 100.0f, 75.0f, 10.0f, 100);
+    Enemigo* nuevoEnemigo = nullptr;
 
-    // 3. Vincular el Sprite de la otra dimensión
-    nuevaVariante->setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Viltrumincible_85x85.png"));
-    nuevaVariante->setPos(xAleatorio, yAleatorio);
+    // Posiciones 3 y 6 en la secuencia (índices 2 y 5) corresponden a la Variante de Portal
+    if (indiceSecuencia == 2 || indiceSecuencia == 5) {
 
-    // 4. Registrar en el contenedor lógico y añadir a la escena de Qt
-    variantes.append(nuevaVariante);
-    escena->addItem(nuevaVariante);
+        // 1. Crear el portal orbital en el centro
+        float faseAleatoria = static_cast<float>(rand() % 360) * 3.14159f / 180.0f;
+        Portal* nuevoPortal = new Portal(400.0f, 300.0f, 290.0f, 1.0f, faseAleatoria);
+        portales.append(nuevoPortal);
+        escena->addItem(nuevoPortal);
+
+        // 2. Instanciar la nueva VariantePortal
+        VariantePortal* varianteVoladora = new VariantePortal(nuevoPortal->getX(), nuevoPortal->getY(), 100.0f, 75.0f, 15.0f, 150);
+        varianteVoladora->setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Capevincible_85x85.png"));
+
+        // 3. Asignar el vector de velocidad inicial hacia el jugador
+        if (jugador && jugador->isActivo()) {
+            float dx = jugador->getX() - varianteVoladora->getX();
+            float dy = jugador->getY() - varianteVoladora->getY();
+            float magnitud = std::sqrt(dx*dx + dy*dy);
+
+            if (magnitud > 0.0f) {
+                // Velocidad alta (ej. 250 px/s) para que atraviese el mapa rápido
+                varianteVoladora->setVelocidad((dx / magnitud) * 250.0f, (dy / magnitud) * 250.0f);
+            }
+        }
+        nuevoEnemigo = varianteVoladora;
+
+    } else {
+        // Variantes normales cuerpo a cuerpo
+        float xAleatorio = 100.0f + (rand() % 600);
+        float yAleatorio = 100.0f + (rand() % 400);
+
+        nuevoEnemigo = new Variante(xAleatorio, yAleatorio, 100.0f, 75.0f, 10.0f, 100);
+        nuevoEnemigo->setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Viltrumincible_85x85.png"));
+    }
+
+    // Registrar y añadir a la escena
+    nuevoEnemigo->setPos(nuevoEnemigo->getX(), nuevoEnemigo->getY());
+    variantes.append(nuevoEnemigo);
+    escena->addItem(nuevoEnemigo);
+
+    // Repetir el patrón (0, 1, 2, 3, 4, 5, 0, 1...)
+    indiceSecuencia = (indiceSecuencia + 1) % 6;
 }
 
 void Nivel2::verificarAtaqueJugador() {

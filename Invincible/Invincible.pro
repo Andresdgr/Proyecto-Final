@@ -22,7 +22,8 @@ SOURCES += \
     nivel2.cpp \
     physicsengine.cpp \
     portal.cpp \
-    variante.cpp
+    variante.cpp \
+    varianteportal.cpp
 
 HEADERS += \
     angstromlevy.h \
@@ -37,7 +38,8 @@ HEADERS += \
     nivel2.h \
     physicsengine.h \
     portal.h \
-    variante.h
+    variante.h \
+    varianteportal.h
 
 FORMS += \
     mainwindow.ui

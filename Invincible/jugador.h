@@ -66,7 +66,6 @@ public:
 
 
     float danioActual;
-
 };
 
 #endif
