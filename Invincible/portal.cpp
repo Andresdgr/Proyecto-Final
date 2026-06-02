@@ -64,20 +64,18 @@ void Portal::updateConPhysics(float dt, const PhysicsEngine& physics)
         if (radioActual < 0.0f) radioActual = -radioActual;
 
     } else {
-        // Nivel 2 — Orbital: actualizar posición del portal
-        QPointF nuevaPos = physics.orbital(
-            cx, cy,
-            radioOrbital,
-            omegaOrbital,
-            fase,
-            tiempoVida
-            );
+        // Nivel 2 — Orbital adaptado a la elipse de la pantalla (800x600)
+        // Multiplicamos el eje X por (400/300) para que llegue a los bordes laterales
+        float rx = radioOrbital * (350.0f / 300.0f);
+        float ry = radioOrbital * (200.0f / 300.0f);
 
-        x = static_cast<float>(nuevaPos.x());
-        y = static_cast<float>(nuevaPos.y());
+        float xFisica = cx + rx * std::cos(omegaOrbital * tiempoVida + fase);
+        float yFisica = cy + ry * std::sin(omegaOrbital * tiempoVida + fase);
 
-        // Sincronizar las coordenadas matemáticas con la interfaz gráfica
-        setPosicion(x, y);
+        x = xFisica;
+        y = yFisica;
+
+        setPosicion(x, y); // Sincroniza con Qt
     }
 }
 

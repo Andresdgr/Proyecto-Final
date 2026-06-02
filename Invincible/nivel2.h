@@ -5,7 +5,10 @@
 #include "enemigo.h"
 #include "portal.h"
 #include "physicsengine.h"
+#include "agenteinteligente.h"
 #include <QList>
+#include <QGraphicsRectItem>
+#include <QGraphicsTextItem>
 
 class Nivel2 : public Nivel {
     Q_OBJECT
@@ -41,6 +44,23 @@ private:
     // Métodos internos
     void spawnVariante();
     void limpiarInactivos();
+
+    AgenteInteligente* agente;
+
+    // --- UI (Interfaz Gráfica) ---
+    QGraphicsRectItem* barraFondoJugador;
+    QGraphicsRectItem* barraVidaJugador;
+    QGraphicsTextItem* textoTiempo;
+
+    // Arreglos de tamaño 6 para manejar el Grid de las variantes
+    QGraphicsRectItem* barrasFondoVariantes[6];
+    QGraphicsRectItem* barrasVidaVariantes[6];
+
+    void inicializarUI();
+    void actualizarUI();
+
+    // El escuadrón fijo de 6 variantes
+    Enemigo* misSeisVariantes[6];
 };
 
 #endif // NIVEL2_H

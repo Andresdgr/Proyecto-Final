@@ -14,13 +14,18 @@ void VariantePortal::update(float dt, const Jugador& jugador) {
 }
 
 void VariantePortal::moverse(float dt) {
+
+    // Si su velocidad es cero, está escondida esperando que el Agente abra un portal
+    if (velX == 0.0f && velY == 0.0f) return;
+
     x += velX * dt;
     y += velY * dt;
 
-    // Si sale de los límites de la pantalla (800x600 con un margen por el sprite), se desactiva
+    // Si sale de los límites de la pantalla
     if (x < -85.0f || x > 800.0f || y < -85.0f || y > 600.0f) {
-        activo = false;
-        hide(); // Oculta el gráfico en la escena de Qt
+        velX = 0.0f;
+        velY = 0.0f;
+        hide(); // Se oculta visualmente, pero sigue viva para el próximo portal
     }
 
     setPosicion(x, y);

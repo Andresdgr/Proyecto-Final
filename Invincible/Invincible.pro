@@ -9,6 +9,7 @@ CONFIG += c++17
 CONFIG -= app_bundle
 
 SOURCES += \
+    agenteinteligente.cpp \
     angstromlevy.cpp \
     difficultyconfig.cpp \
     enemigo.cpp \
@@ -26,6 +27,7 @@ SOURCES += \
     varianteportal.cpp
 
 HEADERS += \
+    agenteinteligente.h \
     angstromlevy.h \
     difficultyconfig.h \
     enemigo.h \

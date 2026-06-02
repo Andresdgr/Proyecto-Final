@@ -11,6 +11,8 @@ void Variante::update(float dt) {
 }
 
 void Variante::update(float dt, const Jugador& jugador) {
+    // Si la variante está esperando turno (oculta), no hace nada.
+    if (!isVisible()) return;
     // Seguir al jugador
     float dx = jugador.getX() - x;
     float dy = jugador.getY() - y;
