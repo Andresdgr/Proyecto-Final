@@ -15,11 +15,12 @@ public:
     enum class EstadoIA : uint8_t {
         AGRESIVO   = 0,
         EVASIVO    = 1,
-        DEFENSIVO  = 2
+        DEFENSIVO  = 2,
+        GOLPEADO   = 3
     };
 
     // ── Constantes de diseño del agente ─────────────────────
-    static constexpr float   UMBRAL_DISTANCIA_EVASION = 100.0f;
+    static constexpr float   UMBRAL_DISTANCIA_EVASION = 45.0f;
     static constexpr float   UMBRAL_VIDA_DEFENSIVO    = 0.30f;
     static constexpr float   UMBRAL_VIDA_AGRESIVO     = 0.70f;
     static constexpr float   AGRESIVIDAD_MAX          = 2.0f;
@@ -44,6 +45,8 @@ public:
     // ── Getter del estado actual (para DebugOverlay C3) ─────
     EstadoIA getEstadoActual() const;
 
+    void recibirImpacto(float dirX); // dirX: dirección del golpe
+
 private:
 
     // ── Estado cognitivo ─────────────────────────────────────
@@ -57,8 +60,17 @@ private:
     float    distanciaAlJugador;
     float    vidaJugadorPercibida;
     float    xJugadorPercibida;
+    float    yJugadorPercibida;
     int8_t   direccionPercibida;
     bool     jugadorCercano;
+
+    // ── Estado de golpe parabólico ───────────────────────────
+    bool    golpeado;
+    float   tiempoGolpe;
+    float   xInicioGolpe;
+    float   yInicioGolpe;
+    float   velXGolpe;
+    float   velYGolpe;
 
     // ── Los 4 componentes del agente (privados) ──────────────
     void percibir(const Jugador& jugador);
@@ -68,11 +80,14 @@ private:
 
     // ── Acciones disponibles ─────────────────────────────────
     void teleportarse();
-    void esperarYDañar();
+    void esperarYDaniar();
 
     // ── Helpers del aprendizaje ──────────────────────────────
     float calcularFrecuenciaDerecha() const;
     void  ajustarParametros();
+
+    float tiempoEntreEvasiones;
+    float cooldownEvasion;
 
 };
 

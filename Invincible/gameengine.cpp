@@ -14,7 +14,7 @@ GameEngine::GameEngine(const DifficultyConfig& config)
 {
 }
 
-// ── Destructor — libera toda la memoria dinámica ─────────────────
+// ── Destructor ───────────────────────────────────────────────────
 GameEngine::~GameEngine()
 {
     delete jugador;
@@ -30,7 +30,6 @@ GameEngine::~GameEngine()
 // ── iniciarNivel ────────────────────────────────────────────────
 void GameEngine::iniciarNivel(uint8_t nivel)
 {
-    // Limpiar estado anterior
     delete jugador;
     jugador = nullptr;
 
@@ -40,20 +39,18 @@ void GameEngine::iniciarNivel(uint8_t nivel)
     for (Portal* p : portales) delete p;
     portales.clear();
 
-    // Crear jugador centrado en la pantalla
     jugador = new Jugador(400.0f, 300.0f);
 
     nivelActivo = nivel;
     estado.setNivel(nivel);
+    estado.setPuntos(0);
     estado.setEstado(GameState::EstadoPartida::JUGANDO);
 
     if (nivel == 1) {
-        // Crear jefe Angstrom Levy
         AngstromLevy* levy = new AngstromLevy(600.0f, 300.0f);
         enemigos.append(levy);
 
-        // Crear portal del nivel 1
-        Portal* portal = new Portal(500.0f, 200.0f,
+        Portal* portal = new Portal(400.0f, 250.0f,
                                     config.amplitudMAS,
                                     config.omegaMAS);
         portales.append(portal);
@@ -69,11 +66,10 @@ void GameEngine::iniciarNivel(uint8_t nivel)
     }
 }
 
-// ── update — orquestador principal ──────────────────────────────
+// ── update ──────────────────────────────────────────────────────
 void GameEngine::update(float dt)
 {
     if (pausado) return;
-
     if (estado.getEstado() != GameState::EstadoPartida::JUGANDO) return;
 
     physics.setDt(dt);
@@ -91,7 +87,7 @@ void GameEngine::update(float dt)
     verificarCondicionFin();
 }
 
-// ── Nivel 1 — jefe + portales MAS ───────────────────────────────
+// ── Nivel 1 ──────────────────────────────────────────────────────
 void GameEngine::actualizarNivel1(float dt)
 {
     for (Enemigo* e : enemigos) {
@@ -107,7 +103,7 @@ void GameEngine::actualizarNivel1(float dt)
     }
 }
 
-// ── Nivel 2 — horda + timer + spawn ─────────────────────────────
+// ── Nivel 2 ──────────────────────────────────────────────────────
 void GameEngine::actualizarNivel2(float dt)
 {
     tiempoNivel2 -= dt;
@@ -133,7 +129,48 @@ void GameEngine::actualizarNivel2(float dt)
     }
 }
 
-// ── Colisiones AABB ──────────────────────────────────────────────
+// ── aplicarAtaqueJugador ─────────────────────────────────────────
+void GameEngine::aplicarAtaqueJugador()
+{
+    if (!jugador || !jugador->isActivo()) return;
+    if (jugador->getDanioActual() <= 0.0f) return;
+
+    float xJ = jugador->getX();
+    float yJ = jugador->getY();
+
+    // Rango de ataque ligeramente mayor que el sprite
+    float jIzq    = xJ - 20.0f;
+    float jDer    = xJ + 80.0f;
+    float jArriba = yJ - 10.0f;
+    float jAbajo  = yJ + 90.0f;
+
+    for (Enemigo* e : enemigos) {
+        if (!e->isActivo()) continue;
+
+        float eIzq    = e->getX();
+        float eDer    = e->getX() + 70.0f;
+        float eArriba = e->getY();
+        float eAbajo  = e->getY() + 90.0f;
+
+        bool colision = jDer    > eIzq    &&
+                        jIzq    < eDer    &&
+                        jAbajo  > eArriba &&
+                        jArriba < eAbajo;
+
+        if (colision) {
+            e->recibirDanio(jugador->getDanioActual());
+            estado.sumarPuntos(10);
+
+            AngstromLevy* levy = dynamic_cast<AngstromLevy*>(e);
+            if (levy) {
+                float dirX = (e->getX() > xJ) ? 1.0f : -1.0f;
+                levy->recibirImpacto(dirX);
+            }
+        }
+    }
+}
+
+// ── verificarColisiones ──────────────────────────────────────────
 void GameEngine::verificarColisiones()
 {
     if (!jugador || !jugador->isActivo()) return;
@@ -141,40 +178,42 @@ void GameEngine::verificarColisiones()
     float xJ = jugador->getX();
     float yJ = jugador->getY();
 
+    // Bounding box del jugador (60x80px)
+    float jIzq    = xJ;
+    float jDer    = xJ + 60.0f;
+    float jArriba = yJ;
+    float jAbajo  = yJ + 80.0f;
+
+    // Levy daña al jugador por contacto de borde
     for (Enemigo* e : enemigos) {
         if (!e->isActivo()) continue;
 
-        if (colisionAABB(xJ, yJ, e->getX(), e->getY(), 30.0f, 30.0f)) {
-            jugador->recibirDanio(e->getDanio());
+        float eIzq    = e->getX();
+        float eDer    = e->getX() + 70.0f;
+        float eArriba = e->getY();
+        float eAbajo  = e->getY() + 90.0f;
 
-            if (jugador->getDanioActual() > 0.0f) {
-                e->recibirDanio(jugador->getDanioActual());
-                estado.sumarPuntos(10);
-            }
+        bool colision = jDer    > eIzq    &&
+                        jIzq    < eDer    &&
+                        jAbajo  > eArriba &&
+                        jArriba < eAbajo;
+
+        if (colision) {
+            jugador->recibirDanio(e->getDanio());
         }
     }
 
+    // Portal — daño ambiental continuo, ignora invulnerabilidad
     for (Portal* p : portales) {
         if (!p->isActivo()) continue;
 
-        if (p->jugadorEnZonaDanio(xJ, yJ)) {
-            jugador->recibirDanio(config.danioPortal * 0.016f);
-        }
-    }
-
-    if (nivelActivo == 2) {
-        for (Enemigo* e : enemigos) {
-            if (!e->isActivo()) continue;
-
-            float xE = e->getX();
-            if (xE < 0.0f || xE > 800.0f) {
-                physics.reboteBorde(e->getVelX(), 0.7f);
-            }
+        if (p->jugadorTocaBorde(xJ, yJ, 60.0f, 80.0f)) {
+            jugador->recibirDanioAmbiental(config.danioPortal * 0.016f);
         }
     }
 }
 
-// ── AABB helper ──────────────────────────────────────────────────
+// ── colisionAABB ─────────────────────────────────────────────────
 bool GameEngine::colisionAABB(float x1, float y1,
                               float x2, float y2,
                               float semi1, float semi2) const
@@ -183,7 +222,7 @@ bool GameEngine::colisionAABB(float x1, float y1,
            (std::abs(y1 - y2) < (semi1 + semi2));
 }
 
-// ── Limpiar entidades inactivas ──────────────────────────────────
+// ── limpiarInactivos ─────────────────────────────────────────────
 void GameEngine::limpiarInactivos()
 {
     for (int i = enemigos.size() - 1; i >= 0; i--) {
@@ -202,7 +241,7 @@ void GameEngine::limpiarInactivos()
     }
 }
 
-// ── Actualizar GameState ─────────────────────────────────────────
+// ── actualizarGameState ──────────────────────────────────────────
 void GameEngine::actualizarGameState()
 {
     if (jugador) {
@@ -218,7 +257,7 @@ void GameEngine::actualizarGameState()
     }
 }
 
-// ── Verificar condición de fin ───────────────────────────────────
+// ── verificarCondicionFin ────────────────────────────────────────
 void GameEngine::verificarCondicionFin()
 {
     if (!jugador || !jugador->isActivo()) {
@@ -237,15 +276,17 @@ void GameEngine::verificarCondicionFin()
     }
 }
 
-// ── Spawn de clon — completar en merge con rama nivel-2 ─────────
+// ── spawnClon ────────────────────────────────────────────────────
 void GameEngine::spawnClon()
 {
 }
 
-// ── Pausar y reanudar ────────────────────────────────────────────
+// ── pausar / reanudar ────────────────────────────────────────────
 void GameEngine::pausar()   { pausado = true;  }
 void GameEngine::reanudar() { pausado = false; }
 
 // ── Getters ──────────────────────────────────────────────────────
-const GameState& GameEngine::getEstado()  const { return estado;  }
-Jugador*         GameEngine::getJugador() const { return jugador; }
+const GameState&       GameEngine::getEstado()   const { return estado;   }
+Jugador*               GameEngine::getJugador()  const { return jugador;  }
+const QList<Enemigo*>& GameEngine::getEnemigos() const { return enemigos; }
+const QList<Portal*>&  GameEngine::getPortales() const { return portales; }

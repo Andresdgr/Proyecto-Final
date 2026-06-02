@@ -25,12 +25,14 @@ public:
 
     // ── Instrucciones de movimiento (llamadas desde GUI) ─────
     void moverX(float direccion);
+    void moverY(float direccion);
     void detener();
 
     // ── Instrucciones de ataque ──────────────────────────────
     void iniciarCarga();
     void soltarCarga();
     void atacar();
+    void resetDanio();
 
     // ── Sobreescritura con lógica de invulnerabilidad ────────
     void recibirDanio(float cantidad) override;
@@ -41,6 +43,8 @@ public:
     bool    isInvulnerable()   const;
     bool    isCargando()       const;
     bool    isComboActivo()    const;
+    //--------------danño por el portal-----------------
+    void recibirDanioAmbiental(float cantidad);
 
 private:
 

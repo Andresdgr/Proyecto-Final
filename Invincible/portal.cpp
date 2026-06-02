@@ -5,6 +5,7 @@
 Portal::Portal(float x, float y, float amplitud, float omegaMAS)
     : Entidad(x, y, 1.0f, 0.0f)
     , tiempoVida(0.0f)
+    , tiempoMovimiento(0.0f)
     , amplitud(amplitud)
     , omegaMAS(omegaMAS)
     , radioActual(amplitud)
@@ -24,6 +25,7 @@ Portal::Portal(float cx, float cy, float radioOrbital,
               cy + radioOrbital * std::sin(fase),
               1.0f, 0.0f)
     , tiempoVida(0.0f)
+    , tiempoMovimiento(0.0f)
     , amplitud(0.0f)
     , omegaMAS(0.0f)
     , radioActual(30.0f)
@@ -41,52 +43,61 @@ Portal::~Portal()
 {
 }
 
-// ── update básico — acumula tiempo ───────────────────────────────
+// ── update básico ────────────────────────────────────────────────
 void Portal::update(float dt)
 {
+    (void)dt;
     if (!activo) return;
-    tiempoVida += dt;
 }
 
-// ── update con physics — calcula posición y radio ────────────────
+// ── updateConPhysics ─────────────────────────────────────────────
 void Portal::updateConPhysics(float dt, const PhysicsEngine& physics)
 {
     if (!activo) return;
 
-    tiempoVida += dt;
+    tiempoVida       += dt;
+    tiempoMovimiento += dt;
 
     if (!esPuntoSpawn) {
-        // Nivel 1 — MAS: actualizar radio de zona de daño
+        // F2 — MAS: radio de zona de daño oscilante
         radioActual = physics.MAS(amplitud, omegaMAS, tiempoVida);
+        if (radioActual < 20.0f) radioActual = 20.0f;
 
-        // Asegurar que el radio no sea negativo
-        if (radioActual < 0.0f) radioActual = -radioActual;
+        // Movimiento por escena — dos MAS combinados
+        // Genera trayectoria elíptica impredecible
+        x = cx + std::cos(tiempoMovimiento * 0.4f) * 200.0f;
+        y = cy + std::sin(tiempoMovimiento * 0.3f) * 100.0f;
+
+        // Límites de pantalla
+        if (x < 30.0f)  x = 30.0f;
+        if (x > 750.0f) x = 750.0f;
+        if (y < 30.0f)  y = 30.0f;
+        if (y > 450.0f) y = 450.0f;
 
     } else {
-        // Nivel 2 — Orbital: actualizar posición del portal
+        // F5 — Orbital
         QPointF nuevaPos = physics.orbital(
-            cx, cy,
-            radioOrbital,
-            omegaOrbital,
-            fase,
-            tiempoVida
-            );
-
+            cx, cy, radioOrbital, omegaOrbital, fase, tiempoVida);
         x = static_cast<float>(nuevaPos.x());
         y = static_cast<float>(nuevaPos.y());
     }
 }
 
-// ── jugadorEnZonaDanio ───────────────────────────────────────────
-bool Portal::jugadorEnZonaDanio(float xJ, float yJ) const
+// ── jugadorTocaBorde ─────────────────────────────────────────────
+bool Portal::jugadorTocaBorde(float xJ, float yJ,
+                              float anchoJug, float altoJug) const
 {
     if (!activo) return false;
 
-    float dx       = xJ - x;
-    float dy       = yJ - y;
+    float cxJ = xJ + anchoJug / 2.0f;
+    float cyJ = yJ + altoJug  / 2.0f;
+
+    float dx = cxJ - x;
+    float dy = cyJ - y;
     float distancia = std::sqrt(dx * dx + dy * dy);
 
-    return distancia < radioActual;
+    float margenBorde = anchoJug / 2.0f;
+    return distancia < (radioActual + margenBorde);
 }
 
 // ── Getters ──────────────────────────────────────────────────────

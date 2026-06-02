@@ -3,7 +3,8 @@
 // ── Constructor ─────────────────────────────────────────────────
 Jugador::Jugador(float x, float y)
     : Entidad(x, y, 100.0f, 75.0f)
-    , velBase(MULTIPLICADOR_VELO * 3.0f)
+    //, velBase(MULTIPLICADOR_VELO * 3.0f)
+    , velBase(200.0f)
     , cargando(false)
     , tiempoCarga(0.0f)
     , hitStreak(0)
@@ -39,7 +40,19 @@ void Jugador::update(float dt)
 
     // 3. Aplicar movimiento
     x += velX * dt;
+    y += velY * dt;
+
+    // ── Límites de pantalla ───────────────────────────────────
+    if (x < 0.0f)   x = 0.0f;
+    if (x > 760.0f) x = 760.0f; // 800 - ancho sprite
+
+    // Límites de pantalla en Y
+    if (y < 0.0f)   y = 0.0f;
+    if (y > 480.0f) y = 480.0f;
+
+
 }
+
 
 // ── moverX ──────────────────────────────────────────────────────
 void Jugador::moverX(float direccion)
@@ -48,11 +61,20 @@ void Jugador::moverX(float direccion)
     velX = direccion * velBase;
 }
 
+// ── moverY──────────────────────────────────────────────────────
+
+void Jugador::moverY(float direccion)
+{
+    if (cargando) return;
+    velY = direccion * velBase;
+}
+
 // ── detener ─────────────────────────────────────────────────────
 void Jugador::detener()
 {
     if (cargando) return;
     velX = 0.0f;
+    velY = 0.0f;
 }
 
 // ── iniciarCarga ────────────────────────────────────────────────
@@ -75,7 +97,7 @@ void Jugador::soltarCarga()
 // ── atacar ──────────────────────────────────────────────────────
 void Jugador::atacar()
 {
-    float danioBase = 20.0f;
+    float danioBase = 5.0f;
 
     // Determinar si el golpe es poderoso
     bool golpePotente = (tiempoCarga >= UMBRAL_CARGA) || comboActivo;
@@ -117,6 +139,17 @@ void Jugador::recibirDanio(float cantidad)
     comboActivo        = false;
     invulnerable       = true;
     tiempoInvulnerable = DURACION_INVUL;
+}
+void Jugador::resetDanio()
+{
+    danioActual = 0.0f;
+}
+
+void Jugador::recibirDanioAmbiental(float cantidad)
+{
+    // Daño ambiental — ignora invulnerabilidad
+    // No resetea combo ni activa invulnerabilidad
+    Entidad::recibirDanio(cantidad);
 }
 
 // ── Getters ─────────────────────────────────────────────────────

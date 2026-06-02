@@ -32,6 +32,12 @@ public:
     // ── Acceso al jugador (para input desde GameWidget) ──────
     Jugador* getJugador() const;
 
+    // ── Acceso a posiciones para sincronizar sprites ──────────
+    const QList<Enemigo*>& getEnemigos() const;
+    const QList<Portal*>&  getPortales() const;
+
+    void aplicarAtaqueJugador();
+
 private:
 
     // ── Entidades ────────────────────────────────────────────
