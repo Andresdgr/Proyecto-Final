@@ -26,6 +26,8 @@ public:
     virtual void inicializarEscenario() = 0;
     virtual void verificarColisiones() = 0;
     virtual void verificarAtaqueJugador() = 0;
+    virtual float getTiempoRestante() const { return 0.0f; }
+    virtual bool nivelCompletado() const { return false; }
 
 public slots:
     virtual void actualizarCicloJuego() = 0; // Se ejecuta en cada tick del QTimer

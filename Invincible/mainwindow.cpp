@@ -43,6 +43,10 @@ MainWindow::~MainWindow()
 }
 
 void MainWindow::keyPressEvent(QKeyEvent *event) {
+    // Bloquear el auto-repeat para la barra espaciadora
+    if (event->isAutoRepeat() && event->key() == Qt::Key_Space) {
+        return;
+    }
     // Si el motor ya está inicializado, le pasamos la tecla
     if (motorJuego) {
         motorJuego->teclaPresionada(event->key());
@@ -50,6 +54,10 @@ void MainWindow::keyPressEvent(QKeyEvent *event) {
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *event) {
+    // Bloquear el auto-repeat  para la barra espaciadora
+    if (event->isAutoRepeat() && event->key() == Qt::Key_Space) {
+        return;
+    }
     if (motorJuego) {
         motorJuego->teclaSoltada(event->key());
     }

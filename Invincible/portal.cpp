@@ -66,8 +66,8 @@ void Portal::updateConPhysics(float dt, const PhysicsEngine& physics)
     } else {
         // Nivel 2 — Orbital adaptado a la elipse de la pantalla (800x600)
         // Multiplicamos el eje X por (400/300) para que llegue a los bordes laterales
-        float rx = radioOrbital * (350.0f / 300.0f);
-        float ry = radioOrbital * (200.0f / 300.0f);
+        float rx = radioOrbital * (360.0f / 300.0f);
+        float ry = radioOrbital * (220.0f / 300.0f);
 
         float xFisica = cx + rx * std::cos(omegaOrbital * tiempoVida + fase);
         float yFisica = cy + ry * std::sin(omegaOrbital * tiempoVida + fase);

@@ -77,19 +77,32 @@ void GameEngine::actualizarGameState()
         estado.setComboActivo(jugador->isComboActivo());
     }
 
+    if (nivelActual) {
+        estado.setTiempoRestante(nivelActual->getTiempoRestante());
+    }
+
 }
 
 // ── Verificar condición de fin ───────────────────────────────────
 void GameEngine::verificarCondicionFin()
 {
     Jugador* jugador = getJugador();
+    // Derrota por muerte
     if (!jugador || !jugador->isActivo()) {
         estado.setEstado(GameState::EstadoPartida::DERROTA);
         return;
     }
 
-    // Las condiciones específicas de victoria se gestionan internamente en las clases hijas.
-    // Si el nivel2 determina que el tiempo acabó, modificará el estado correspondiente.
+    // VICTORIA: las 6 variantes derrotadas
+    if (nivelActual && nivelActual->nivelCompletado()) {
+        estado.setEstado(GameState::EstadoPartida::VICTORIA);
+        return;
+    }
+
+    // Derrota por tiempo
+    if (estado.getTiempoRestante() <= 0.0f) {
+        estado.setEstado(GameState::EstadoPartida::DERROTA);
+    }
 }
 
 // ── Pausar y reanudar ────────────────────────────────────────────
@@ -106,17 +119,17 @@ void GameEngine::teclaPresionada(int key) {
     if (nivelActual && nivelActual->getJugador()) {
         // Movimiento Horizontal
         if (key == Qt::Key_A || key == Qt::Key_Left) {
-            nivelActual->getJugador()->moverX(-40);
+            nivelActual->getJugador()->moverX(-90);
         }
         else if (key == Qt::Key_D || key == Qt::Key_Right) {
-            nivelActual->getJugador()->moverX(40);
+            nivelActual->getJugador()->moverX(90);
         }
         // AGREGADO: Movimiento Vertical
         else if (key == Qt::Key_W || key == Qt::Key_Up) {
-            nivelActual->getJugador()->moverY(-40);
+            nivelActual->getJugador()->moverY(-90);
         }
         else if (key == Qt::Key_S || key == Qt::Key_Down) {
-            nivelActual->getJugador()->moverY(40);
+            nivelActual->getJugador()->moverY(90);
         }
         // Acción de Ataque con la Barra Espaciadora
         else if (key == Qt::Key_Space) {

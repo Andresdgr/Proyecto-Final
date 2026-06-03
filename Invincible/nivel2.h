@@ -20,7 +20,9 @@ public:
     // Métodos obligatorios heredados de Nivel
     void inicializarEscenario() override;
     void verificarColisiones() override;
-    void verificarAtaqueJugador();
+    void verificarAtaqueJugador() override;
+    float getTiempoRestante() const override { return tiempoRestante; }
+    bool nivelCompletado() const override;
 
 public slots:
     // Slot obligatorio ejecutado por el QTimer de Nivel
@@ -36,6 +38,8 @@ private:
     float tiempoRestante;
     float tiempoSpawn;
     float frecuenciaSpawn;
+    float tiempoSpawnVoladoras;  // Timer exclusivo para voladoras
+    float frecuenciaSpawnVoladoras;
 
     // Control de la secuencia de invasión
     uint8_t indiceSecuencia;
@@ -43,7 +47,10 @@ private:
 
     // Métodos internos
     void spawnVariante();
+    void spawnVoladora();
     void limpiarInactivos();
+    void limpiarPortales();
+    void verificarVictoria();
 
     AgenteInteligente* agente;
 

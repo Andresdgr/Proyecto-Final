@@ -17,8 +17,8 @@ void Variante::update(float dt, const Jugador& jugador) {
     float dx = jugador.getX() - x;
     float dy = jugador.getY() - y;
     float dist = std::sqrt(dx*dx + dy*dy);
-    velX = (dx / dist) * 50.0f;  // velocidad de 50 px/s
-    velY = (dy / dist) * 50.0f;
+    velX = (dx / dist) * 120.0f;  // velocidad de 50 px/s
+    velY = (dy / dist) * 120.0f;
     moverse(dt);
 }
 
