@@ -9,6 +9,9 @@
 #include <QList>
 #include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
+#include <QSoundEffect>
+#include <QMediaPlayer>
+#include <QAudioOutput>
 
 class Nivel2 : public Nivel {
     Q_OBJECT
@@ -34,6 +37,13 @@ private:
     QList<Enemigo*> variantes;
     QList<Portal*> portales;
 
+    // Música y sonidos del nivel
+    QMediaPlayer* musicaFondoNivel;
+    QAudioOutput* audioNivel;
+    QSoundEffect* sonidoVictoria;
+    QSoundEffect* sonidoDerrota;
+    QSoundEffect* efectoGolpe;
+
     // Variables de control de tiempo del Nivel 2
     float tiempoRestante;
     float tiempoSpawn;
@@ -45,6 +55,7 @@ private:
     float tiempoFluctuacionPortales = 0.0f;
     int targetPortales = 0;
     bool creciendoPortales = true;
+    bool juegoTerminado = false; // Bandera para saber si ya acabó
 
     // Control de la secuencia de invasión
     uint8_t indiceSecuencia;
@@ -73,6 +84,9 @@ private:
 
     // El escuadrón fijo de 6 variantes
     Enemigo* misSeisVariantes[6];
+
+    // Función que ejecutará el final
+    void finalizarJuego(bool victoria);
 };
 
 #endif // NIVEL2_H

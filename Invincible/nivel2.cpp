@@ -19,6 +19,29 @@ Nivel2::Nivel2(QGraphicsScene* escenaCompartida)
 {
     physics = new PhysicsEngine(DifficultyConfig::normal());
     agente = new AgenteInteligente();
+
+    // MÚSICA DE FONDO DEL NIVEL
+    musicaFondoNivel = new QMediaPlayer(this);
+    audioNivel = new QAudioOutput(this);
+    musicaFondoNivel->setAudioOutput(audioNivel);
+    musicaFondoNivel->setSource(QUrl::fromLocalFile("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/soundtrack/Tom_tom.wav"));
+    audioNivel->setVolume(0.4f);
+    musicaFondoNivel->setLoops(QMediaPlayer::Infinite);
+    musicaFondoNivel->play();
+
+    // SONIDOS DE FIN DE PARTIDA
+    sonidoVictoria = new QSoundEffect(this);
+    sonidoVictoria->setSource(QUrl::fromLocalFile("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/soundtrack/win.wav"));
+    sonidoVictoria->setVolume(1.0f);
+
+    sonidoDerrota = new QSoundEffect(this);
+    sonidoDerrota->setSource(QUrl::fromLocalFile("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/soundtrack/lose.wav"));
+    sonidoDerrota->setVolume(1.0f);
+
+    // SONIDO DE GOLPE
+    efectoGolpe = new QSoundEffect(this);
+    efectoGolpe->setSource(QUrl::fromLocalFile("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/soundtrack/golpe.wav"));
+    efectoGolpe->setVolume(0.85f); // Volumen al 80%
 }
 
 Nivel2::~Nivel2() {
@@ -82,6 +105,8 @@ void Nivel2::inicializarEscenario() {
 
 void Nivel2::actualizarCicloJuego() {
     float dt = 0.016f;
+
+    if (juegoTerminado) return;
 
     // 1. Lógica de supervivencia
     tiempoRestante -= dt;
@@ -159,6 +184,13 @@ void Nivel2::actualizarCicloJuego() {
     limpiarInactivos();
     verificarVictoria();
     actualizarUI();
+
+    // Al final de la función, revisamos si alguien ganó o perdió
+    if (nivelCompletado()) {
+        finalizarJuego(true);  // Mató a las 6 variantes
+    } else if (tiempoRestante <= 0.0f || (jugador && !jugador->isActivo())) {
+        finalizarJuego(false); // Se acabó el tiempo o murió Invincible
+    }
 }
 
 void Nivel2::verificarColisiones() {
@@ -181,6 +213,12 @@ void Nivel2::verificarColisiones() {
             }
 
             if (!jugador->isInvulnerable()) {
+
+                // Reproducir el sonido del golpe
+                if (efectoGolpe) {
+                    efectoGolpe->play();
+                }
+
                 jugador->recibirDanio(c->getDanio());
 
                 // La variante retrocede después de acertar su golpe
@@ -274,6 +312,11 @@ void Nivel2::verificarAtaqueJugador() {
         // Determinar proximidad en un rango de ataque (ej. 80 píxeles)
         if (std::abs(xJ - c->getX()) < 80.0f && std::abs(yJ - c->getY()) < 80.0f) {
             c->recibirDanio(danio);
+
+            // Reproducir el sonido del golpe
+            if (efectoGolpe) {
+                efectoGolpe->play();
+            }
 
             // VISUALIZACIÓN DEL DAÑO:
             c->setOpacity(0.3f);
@@ -490,4 +533,42 @@ void Nivel2::gestionarPortalesEntorno(float dt) {
         escena->removeItem(pViejo);
         delete pViejo;
     }
+}
+
+void Nivel2::finalizarJuego(bool victoria) {
+    juegoTerminado = true;
+
+    // Detiene el temporizador del Nivel para que todo se congele
+    if (gameTimer) {
+        gameTimer->stop();
+    }
+
+    // Apagar la música de batalla
+    if (musicaFondoNivel) {
+        musicaFondoNivel->stop();
+    }
+
+    // Preparar el texto en pantalla
+    QGraphicsTextItem* textoResultado = new QGraphicsTextItem();
+    QFont fuente("Arial", 45, QFont::Bold);
+    textoResultado->setFont(fuente);
+
+    if (victoria) {
+        textoResultado->setPlainText("¡VARIANTES ERRADICADAS!");
+        textoResultado->setDefaultTextColor(Qt::red);
+        if (sonidoVictoria) sonidoVictoria->play();
+    } else {
+        textoResultado->setPlainText("¡FUISTE ERRADICADO!");
+        textoResultado->setDefaultTextColor(Qt::black);
+        if (sonidoDerrota) sonidoDerrota->play();
+    }
+
+    // Calcular el centro exacto de la pantalla (800x600) para el texto
+    float xCentro = 400.0f - (textoResultado->boundingRect().width() / 2.0f);
+    float yCentro = 300.0f - (textoResultado->boundingRect().height() / 2.0f);
+    textoResultado->setPos(xCentro, yCentro);
+
+    // Añadir el texto por encima de todo
+    textoResultado->setZValue(100);
+    escena->addItem(textoResultado);
 }

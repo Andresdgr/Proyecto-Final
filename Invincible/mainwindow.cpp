@@ -32,6 +32,7 @@ MainWindow::MainWindow(QWidget *parent)
     // 6. Instanciar el GameEngine pasándole la escena principal
     motorJuego = new GameEngine(DifficultyConfig::normal());
 
+
     // 7. Inicializar el escenario
     motorJuego->iniciarNivel(2, escenaPrincipal);
 }
