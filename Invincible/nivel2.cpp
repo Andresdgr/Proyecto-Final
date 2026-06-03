@@ -11,9 +11,9 @@
 
 Nivel2::Nivel2(QGraphicsScene* escenaCompartida)
     : Nivel(escenaCompartida),
-    tiempoRestante(100.0f),
+    tiempoRestante(90.0f),
     tiempoSpawn(0.0f),
-    frecuenciaSpawn(10.0f),
+    frecuenciaSpawn(5.0f),
     tiempoSpawnVoladoras(0.0f),
     frecuenciaSpawnVoladoras(1.0f) // Voladoras cada 1s
 {
@@ -45,15 +45,31 @@ void Nivel2::inicializarEscenario() {
     jugador = new Jugador(400.0f, 300.0f);
     escena->addItem(jugador);
 
+    // ─── NUEVO: ARREGLO DE RUTAS DE SPRITES INDIVIDUALES ───
+    // Reemplaza los nombres de los archivos por los que tengas en tu carpeta de Sprites.
+    // Recuerda que los índices 2 y 5 están reservados para las variantes voladoras.
+    QString rutasSprites[6] = {
+        "C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Movincihawk_85x85.png",      // Variante Normal 1
+        "C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Full-Mask-Mark.png",         // Variante Normal 2
+        "C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Capevincible_85x85.png",     // Variante Portal 1 (Voladora)
+        "C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Viltrumincible_85x85.png",   // Variante Normal 3
+        "C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Hoodvincible_85x85.png",     // Variante Normal 4 (Ejemplo crossover)
+        "C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Omni-Mark_85x85.png"         // Variante Portal 2 (Voladora)
+    };
+
     // Crear las 6 variantes de la invasión y dejarlas en espera
     for (int i = 0; i < 6; ++i) {
-        if (i == 2 || i == 5) { // Las variantes del Agente
-            misSeisVariantes[i] = new VariantePortal(-1000.0f, -1000.0f, 300.0f, 75.0f, 15.0f, 150); // (float x, float y, float vida, float masa, float danio, uint16_t puntos)
-            misSeisVariantes[i]->setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Capevincible_85x85.png"));
-        } else { // Las variantes de combate normal
+        if (i == 2 || i == 5) {
+            // Las variantes del Agente (Voladoras)
+            misSeisVariantes[i] = new VariantePortal(-1000.0f, -1000.0f, 300.0f, 75.0f, 15.0f, 150);
+        } else {
+            // Las variantes de combate normal (Cuerpo a cuerpo)
             misSeisVariantes[i] = new Variante(-1000.0f, -1000.0f, 500.0f, 75.0f, 10.0f, 100);
-            misSeisVariantes[i]->setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Viltrumincible_85x85.png"));
         }
+
+        // ─── CAMBIO: ASIGNACIÓN DINÁMICA DEL SPRITE ───
+        // Lee el archivo correspondiente desde el arreglo usando el índice actual 'i'
+        misSeisVariantes[i]->setPixmap(QPixmap(rutasSprites[i]));
 
         misSeisVariantes[i]->hide(); // Las ocultamos
         variantes.append(misSeisVariantes[i]);
@@ -67,18 +83,20 @@ void Nivel2::inicializarEscenario() {
 void Nivel2::actualizarCicloJuego() {
     float dt = 0.016f;
 
-    // 1. Tiempo de supervivencia
+    // 1. Lógica de supervivencia
     tiempoRestante -= dt;
     if (tiempoRestante < 0.0f) tiempoRestante = 0.0f;
 
-    // 2. Spawn de normales (cada 2.5s)
+    gestionarPortalesEntorno(dt);
+
+    // 2. Temporizador de Variantes Normales (El enjambre cuerpo a cuerpo)
     tiempoSpawn += dt;
     if (tiempoSpawn >= frecuenciaSpawn) {
         spawnVariante();
         tiempoSpawn = 0.0f;
     }
 
-    // 3. Spawn de voladoras (cada 1.2s)
+    // 3. Temporizador de Variantes Portal (Voladoras)
     tiempoSpawnVoladoras += dt;
     if (tiempoSpawnVoladoras >= frecuenciaSpawnVoladoras) {
         spawnVoladora();
@@ -91,11 +109,38 @@ void Nivel2::actualizarCicloJuego() {
         agente->percibir(jugador->getX(), jugador->getY());
     }
 
-    // 5. Actualizar Enemigos
+    // 5. Coordinar IA y Actualizar Enemigos
+    QList<Variante*> enjambre;
+    int ordenNormales[] = {0, 1, 3, 4}; // Los índices fijos de las variantes cuerpo a cuerpo
+
+    // a. Censar el estado actual del mapa
+    for (int idx : ordenNormales) {
+        Variante* v = dynamic_cast<Variante*>(misSeisVariantes[idx]);
+        if (v && v->isVisible() && v->getVida() > 0.0f) {
+            enjambre.append(v);
+        }
+    }
+
+    int cantidad = enjambre.size();
+    if (cantidad > 0) {
+        float separacionAngular = (2.0f * 3.14159f) / cantidad; // Reparte el círculo
+        bool hayAtacante = false;
+
+        for (int i = 0; i < cantidad; ++i) {
+            if (enjambre[i]->getEstado() == Variante::Estado::ATACAR) hayAtacante = true;
+            enjambre[i]->setAngulo(i * separacionAngular); // Asigna posición en el cerco
+        }
+
+        // b. Otorgar el turno de ataque si nadie lo tiene
+        if (!hayAtacante) {
+            enjambre[rand() % cantidad]->setEstado(Variante::Estado::ATACAR);
+        }
+    }
+
+    // c. Actualizar físicas y movimiento
     for (Enemigo* c : std::as_const(variantes)) {
         if (c->isActivo() && jugador) {
             c->update(dt, *jugador);
-
             if (c->opacity() < 1.0f) {
                 c->setOpacity(c->opacity() + dt * 4.0f);
                 if (c->opacity() > 1.0f) c->setOpacity(1.0f);
@@ -112,7 +157,6 @@ void Nivel2::actualizarCicloJuego() {
 
     verificarColisiones();
     limpiarInactivos();
-    limpiarPortales();
     verificarVictoria();
     actualizarUI();
 }
@@ -138,6 +182,10 @@ void Nivel2::verificarColisiones() {
 
             if (!jugador->isInvulnerable()) {
                 jugador->recibirDanio(c->getDanio());
+
+                // La variante retrocede después de acertar su golpe
+                Variante* vn = dynamic_cast<Variante*>(c);
+                if (vn) vn->setEstado(Variante::Estado::RODEAR);
 
                 float dx = xJ - c->getX();
                 float dy = yJ - c->getY();
@@ -176,6 +224,7 @@ void Nivel2::spawnVariante() {
 
 void Nivel2::spawnVoladora() {
     int ordenVoladoras[] = {2, 5};
+    if (portales.isEmpty()) return;
 
     for (int idx : ordenVoladoras) {
         Enemigo* v = misSeisVariantes[idx];
@@ -186,14 +235,14 @@ void Nivel2::spawnVoladora() {
             int zonaElegida = agente->razonar();
             QPointF posObjetivo = agente->obtenerCoordenadaPortal(zonaElegida);
 
-            // Crear portal orbital
-            float faseAleatoria = static_cast<float>(rand() % 360) * 3.14159f / 180.0f;
-            Portal* nuevoPortal = new Portal(350.0f, 250.0f, 290.0f, 1.0f, faseAleatoria);
-            portales.append(nuevoPortal);
-            escena->addItem(nuevoPortal);
+            // REUTILIZAR PORTALES
+            // 1. Elegimos un portal al azar de la lista de portales activos
+            int indicePortalAleatorio = rand() % portales.size();
+            Portal* portalCuna = portales[indicePortalAleatorio];
 
-            // Posicionar voladora en el portal
-            vp->setPosicion(nuevoPortal->getX(), nuevoPortal->getY());
+            // 2. Posicionamos a la variante exactamente en el centro del portal elegido
+            vp->setPosicion(portalCuna->getX(), portalCuna->getY());
+
             vp->setZonaOrigen(zonaElegida);   // Marca que ya fue lanzada
             vp->setImpacto(false);            // Reset para aprendizaje
 
@@ -228,6 +277,10 @@ void Nivel2::verificarAtaqueJugador() {
 
             // VISUALIZACIÓN DEL DAÑO:
             c->setOpacity(0.3f);
+
+            // Si el jugador interrumpe el ataque, la variante pierde su turno
+            Variante* vn = dynamic_cast<Variante*>(c);
+            if (vn) vn->setEstado(Variante::Estado::RODEAR);
 
             // FÍSICA DE EMPUJE A LA VARIANTE
             // 1. Calcular el vector de dirección desde el jugador hacia la variante
@@ -356,19 +409,6 @@ void Nivel2::limpiarInactivos() {
     }
 }
 
-void Nivel2::limpiarPortales() {
-    // Verificamos si alguna de las dos voladoras (índices 2 o 5) sigue cruzando la pantalla
-    bool hayVoladoras = misSeisVariantes[2]->isVisible() || misSeisVariantes[5]->isVisible();
-
-    // Si ya se ocultaron, limpiamos todos los portales residuales
-    if (!hayVoladoras) {
-        for (Portal* p : std::as_const(portales)) {
-            escena->removeItem(p);
-            delete p;
-        }
-        portales.clear();
-    }
-}
 
 bool Nivel2::nivelCompletado() const {
     for (int i = 0; i < 6; ++i) {
@@ -380,5 +420,74 @@ bool Nivel2::nivelCompletado() const {
 
 
 void Nivel2::verificarVictoria() {
-    //if (nivelCompletado()) tiempoRestante = 0.0f;
+    if (nivelCompletado()) tiempoRestante = 0.0f;
+}
+
+void Nivel2::gestionarPortalesEntorno(float dt) {
+    // 1. Censar cuántas variantes voladoras siguen vivas en el mapa
+    int voladorasVivas = 0;
+    for (int i = 0; i < 6; ++i) {
+        VariantePortal* vp = dynamic_cast<VariantePortal*>(misSeisVariantes[i]);
+        if (vp && vp->getVida() > 0.0f) {
+            voladorasVivas++;
+        }
+    }
+
+    // 2. Definir los límites matemáticos según la cantidad de sobrevivientes
+    int minPortales = 0, maxPortales = 0;
+    if (voladorasVivas >= 2) {
+        minPortales = 5; maxPortales = 7;
+    } else if (voladorasVivas == 1) {
+        minPortales = 2; maxPortales = 4;
+    } else {
+        // Si las mataste a ambas, colapsan todos los portales
+        for (Portal* p : std::as_const(portales)) {
+            escena->removeItem(p);
+            delete p;
+        }
+        portales.clear();
+        targetPortales = 0;
+        return;
+    }
+
+    // Ajuste de seguridad si cambia bruscamente la cantidad de voladoras vivas
+    if (targetPortales < minPortales) targetPortales = minPortales;
+    if (targetPortales > maxPortales) targetPortales = maxPortales;
+
+    // 3. Fluctuación rítmica (Cambia la cantidad objetivo cada 1.0 segundo)
+    tiempoFluctuacionPortales += dt;
+    if (tiempoFluctuacionPortales > 1.0f) {
+        tiempoFluctuacionPortales = 0.0f;
+
+        if (creciendoPortales) {
+            targetPortales++;
+            if (targetPortales >= maxPortales) creciendoPortales = false;
+        } else {
+            targetPortales--;
+            if (targetPortales <= minPortales) creciendoPortales = true;
+        }
+    }
+
+    // 4. Sincronizar el escenario visual con el target calculado
+    // ABRIR NUEVOS PORTALES
+    while (portales.size() < targetPortales) {
+
+        // 1. Calculamos una fase aleatoria (en radianes) para que los portales
+        // no aparezcan amontonados, sino repartidos por toda la pista elíptica.
+        float faseAleatoria = static_cast<float>(rand() % 360) * 3.14159f / 180.0f;
+
+        // 2. Usamos el constructor Orbital: (centroX, centroY, radio, velocidad, fase)
+        Portal* nuevoPortal = new Portal(350.0f, 250.0f, 290.0f, 1.0f, faseAleatoria);
+
+        escena->addItem(nuevoPortal);
+        portales.append(nuevoPortal);
+    }
+
+    // CERRAR PORTALES SOBRANTES
+    while (portales.size() > targetPortales && !portales.isEmpty()) {
+        // Elimina el portal más antiguo de la lista
+        Portal* pViejo = portales.takeFirst();
+        escena->removeItem(pViejo);
+        delete pViejo;
+    }
 }

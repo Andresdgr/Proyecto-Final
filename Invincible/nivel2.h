@@ -41,6 +41,11 @@ private:
     float tiempoSpawnVoladoras;  // Timer exclusivo para voladoras
     float frecuenciaSpawnVoladoras;
 
+    // Variables para la fluctuación de portales
+    float tiempoFluctuacionPortales = 0.0f;
+    int targetPortales = 0;
+    bool creciendoPortales = true;
+
     // Control de la secuencia de invasión
     uint8_t indiceSecuencia;
     static constexpr uint8_t MAX_SIMULTANEOS = 6;
@@ -49,8 +54,8 @@ private:
     void spawnVariante();
     void spawnVoladora();
     void limpiarInactivos();
-    void limpiarPortales();
     void verificarVictoria();
+    void gestionarPortalesEntorno(float dt);
 
     AgenteInteligente* agente;
 
