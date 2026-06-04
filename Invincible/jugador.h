@@ -34,6 +34,7 @@ public:
     void atacar();
     void resetDanio();
 
+
     // ── Sobreescritura con lógica de invulnerabilidad ────────
     void recibirDanio(float cantidad) override;
 

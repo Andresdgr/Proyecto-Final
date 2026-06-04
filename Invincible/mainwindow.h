@@ -70,6 +70,20 @@ private:
     void mostrarPantallaFin(bool victoria);
     void reiniciarJuego();
 
+    // ── Menú de dificultad ────────────────────────────────────
+    QGraphicsTextItem*     textoTitulo;
+    QGraphicsTextItem*     textoFacil;
+    QGraphicsTextItem*     textoNormal;
+    QGraphicsTextItem*     textoDificil;
+    bool                   enMenu;
+    QGraphicsRectItem*     fondoMenu;
+    QGraphicsTextItem*     textoSubtitulo;
+
+    void mostrarMenu();
+    void ocultarMenu();
+
+
+
     // ── Métodos privados ─────────────────────────────────────
     void inicializarEscena();
     void inicializarHUD();

@@ -25,6 +25,13 @@ MainWindow::MainWindow(QWidget *parent)
     , textoFinJuego(nullptr)
     , textoReiniciar(nullptr)
     , textoPuntajeFinal(nullptr)
+    , textoTitulo(nullptr)
+    , textoFacil(nullptr)
+    , textoNormal(nullptr)
+    , textoDificil(nullptr)
+    , enMenu(true)
+    , fondoMenu(nullptr)
+    , textoSubtitulo(nullptr)
 
 {
     ui->setupUi(this);
@@ -37,16 +44,14 @@ MainWindow::MainWindow(QWidget *parent)
     inicializarEscena();
     inicializarHUD();
 
-    engine->iniciarNivel(1);
-
     timerLoop = new QTimer(this);
     connect(timerLoop, &QTimer::timeout,
             this,      &MainWindow::onUpdate);
-    timerLoop->start(16);
 
     reloj.start();
 
-    // MainWindow siempre tiene el foco del teclado
+    // Mostrar menú al inicio en lugar de iniciar el juego directamente
+    mostrarMenu();
     setFocus();
 }
 
@@ -158,21 +163,14 @@ void MainWindow::reiniciarJuego()
         textoReiniciar = nullptr;
     }
 
-    // ← agregar esto
     if (textoPuntajeFinal) {
         escena->removeItem(textoPuntajeFinal);
         delete textoPuntajeFinal;
         textoPuntajeFinal = nullptr;
     }
 
-    engine->iniciarNivel(1);
-
-    spriteJugador->setVisible(true);
-    spriteLevy->setVisible(true);
-    spritePortal->setVisible(true);
-
-    reloj.restart();
-    timerLoop->start(16);
+    // Volver al menú en lugar de reiniciar directamente
+    mostrarMenu();
     setFocus();
 }
 // ── inicializarHUD ───────────────────────────────────────────────
@@ -294,17 +292,49 @@ void MainWindow::procesarInput()
 // ── keyPressEvent ────────────────────────────────────────────────
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
+    // ── Controles del menú ────────────────────────────────────
+    if (enMenu) {
+        if (event->key() == Qt::Key_1) {
+            config = DifficultyConfig::facil();
+            ocultarMenu();
+            delete engine;
+            engine = new GameEngine(config);
+            engine->iniciarNivel(1);
+            reloj.restart();
+            timerLoop->start(16);
+            setFocus();
+        }
+        else if (event->key() == Qt::Key_2) {
+            config = DifficultyConfig::normal();
+            ocultarMenu();
+            delete engine;
+            engine = new GameEngine(config);
+            engine->iniciarNivel(1);
+            reloj.restart();
+            timerLoop->start(16);
+            setFocus();
+        }
+        else if (event->key() == Qt::Key_3) {
+            config = DifficultyConfig::dificil();
+            ocultarMenu();
+            delete engine;
+            engine = new GameEngine(config);
+            engine->iniciarNivel(1);
+            reloj.restart();
+            timerLoop->start(16);
+            setFocus();
+        }
+        return; // no procesar otras teclas mientras está el menú
+    }
+
+    // ── Controles del juego ───────────────────────────────────
     teclasPresionadas.insert(event->key());
 
     if (event->key() == Qt::Key_Z) {
         Jugador* jugador = engine->getJugador();
         if (jugador && jugador->isActivo()) {
             jugador->atacar();
-
-            // Verificar colisión inmediatamente con el daño actual
             engine->aplicarAtaqueJugador();
-
-            // Resetear daño después de aplicarlo
             jugador->resetDanio();
         }
     }
@@ -407,4 +437,69 @@ void MainWindow::actualizarHUD()
             "Tiempo: " + QString::number(
                 (int)estado.getTiempoRestante()) + "s");
     }
+}
+void MainWindow::mostrarMenu()
+{
+    enMenu = true;
+    timerLoop->stop();
+
+    // Fondo semitransparente oscuro
+    QGraphicsRectItem* fondo = new QGraphicsRectItem(0, 0, 800, 600);
+    fondo->setBrush(QBrush(QColor(0, 0, 0, 180)));
+    fondo->setPen(Qt::NoPen);
+    fondo->setZValue(10);
+    escena->addItem(fondoMenu);
+
+    // Título
+    textoTitulo = new QGraphicsTextItem("INVINCIBLE KICKBOXER");
+    textoTitulo->setDefaultTextColor(QColor(255, 200, 0));
+    textoTitulo->setFont(QFont("Arial", 32, QFont::Bold));
+    textoTitulo->setPos(80, 120);
+    textoTitulo->setZValue(11);
+    escena->addItem(textoTitulo);
+
+    // Subtítulo
+    QGraphicsTextItem* sub = new QGraphicsTextItem("Selecciona la dificultad:");
+    sub->setDefaultTextColor(Qt::white);
+    sub->setFont(QFont("Arial", 16));
+    sub->setPos(240, 220);
+    sub->setZValue(11);
+    escena->addItem(textoSubtitulo);
+
+    // Opción Fácil
+    textoFacil = new QGraphicsTextItem("[ 1 ]  FACIL");
+    textoFacil->setDefaultTextColor(QColor(0, 220, 100));
+    textoFacil->setFont(QFont("Arial", 20, QFont::Bold));
+    textoFacil->setPos(280, 300);
+    textoFacil->setZValue(11);
+    escena->addItem(textoFacil);
+
+    // Opción Normal
+    textoNormal = new QGraphicsTextItem("[ 2 ]  NORMAL");
+    textoNormal->setDefaultTextColor(QColor(255, 200, 0));
+    textoNormal->setFont(QFont("Arial", 20, QFont::Bold));
+    textoNormal->setPos(280, 360);
+    textoNormal->setZValue(11);
+    escena->addItem(textoNormal);
+
+    // Opción Difícil
+    textoDificil = new QGraphicsTextItem("[ 3 ]  DIFICIL");
+    textoDificil->setDefaultTextColor(QColor(220, 50, 50));
+    textoDificil->setFont(QFont("Arial", 20, QFont::Bold));
+    textoDificil->setPos(280, 420);
+    textoDificil->setZValue(11);
+    escena->addItem(textoDificil);
+
+}
+void MainWindow::ocultarMenu()
+{
+    if (fondoMenu)    { escena->removeItem(fondoMenu);    delete fondoMenu;    fondoMenu    = nullptr; }
+    // Eliminar todos los items del menú de la escena
+    if (textoTitulo)  { escena->removeItem(textoTitulo);  delete textoTitulo;  textoTitulo  = nullptr; }
+    if (textoSubtitulo){ escena->removeItem(textoSubtitulo);delete textoSubtitulo;textoSubtitulo= nullptr; }
+    if (textoFacil)   { escena->removeItem(textoFacil);   delete textoFacil;   textoFacil   = nullptr; }
+    if (textoNormal)  { escena->removeItem(textoNormal);  delete textoNormal;  textoNormal  = nullptr; }
+    if (textoDificil) { escena->removeItem(textoDificil); delete textoDificil; textoDificil = nullptr; }
+
+    enMenu = false;
 }
