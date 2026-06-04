@@ -1,19 +1,19 @@
 #ifndef ENTIDAD_H
 #define ENTIDAD_H
 
-class Entidad {
+#include <QGraphicsPixmapItem>
 
-public: //Metodos Todo lo que es accesible desde cualquier parte del programa.
+class Entidad : public QGraphicsPixmapItem { // 1. Añadir herencia gráfica
 
-    Entidad(float x, float y, float vida, float masa);
-
+public:
+    // 2. Se añade un puntero opcional a QGraphicsItem por convención de Qt
+    Entidad(float x, float y, float vida, float masa, QGraphicsItem* parent = nullptr);
     virtual ~Entidad();
 
     virtual void update(float dt) = 0;
-
-
     virtual void recibirDanio(float cantidad);
 
+    // ── Getters ─────────────────────────────────────────────────────
     float getX()          const;
     float getY()          const;
     float getVelX()       const;
@@ -23,8 +23,12 @@ public: //Metodos Todo lo que es accesible desde cualquier parte del programa.
     float getMasa()       const;
     bool  isActivo()      const;
 
-protected://el exterior solo puede leerlos mediante getters const
+    // ── Setters ─────────────────────────────────────────────────────
+    // 3. Nuevos métodos para sincronizar las matemáticas con los gráficos
+    void setPosicion(float nuevoX, float nuevoY);
+    void setVelocidad(float vX, float vY);
 
+protected:
     float x;
     float y;
 
@@ -38,6 +42,7 @@ protected://el exterior solo puede leerlos mediante getters const
 
     bool activo;
 
+    void limitarBordes(float limiteX, float limiteY, float anchoSprite, float altoSprite);
 };
 
 #endif
