@@ -26,9 +26,9 @@ DifficultyConfig DifficultyConfig::facil()
     // Spawn — aparecen pocos clones
     cfg.frecuenciaSpawn  = 4.0f;
 
-    // Daño reducido
+    // Daño
     cfg.danioPortal      = 3.0f;
-    cfg.danioLevy        = 10.0f;
+    cfg.danioLevy        = 5.0f;
 
     return cfg;
 }
@@ -54,7 +54,7 @@ DifficultyConfig DifficultyConfig::normal()
     cfg.frecuenciaSpawn  = 2.5f;
 
     cfg.danioPortal      = 6.0f;
-    cfg.danioLevy        = 15.0f;
+    cfg.danioLevy        = 8.0f;
 
     return cfg;
 }
@@ -87,7 +87,7 @@ DifficultyConfig DifficultyConfig::dificil()
 
     // Daño alto
     cfg.danioPortal      = 12.0f;
-    cfg.danioLevy        = 22.0f;
+    cfg.danioLevy        = 12.0f;
 
     return cfg;
 }

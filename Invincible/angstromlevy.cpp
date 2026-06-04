@@ -14,8 +14,17 @@ AngstromLevy::AngstromLevy(float x, float y)
     , distanciaAlJugador(0.0f)
     , vidaJugadorPercibida(100.0f)
     , xJugadorPercibida(0.0f)
+    , yJugadorPercibida(300.0f)
     , direccionPercibida(0)
     , jugadorCercano(false)
+    , golpeado(false)
+    , tiempoGolpe(0.0f)
+    , xInicioGolpe(0.0f)
+    , yInicioGolpe(0.0f)
+    , velXGolpe(0.0f)
+    , velYGolpe(0.0f)
+    , tiempoEntreEvasiones(0.0f)
+    , cooldownEvasion(0.0f)
 {
 }
 
@@ -39,26 +48,47 @@ void AngstromLevy::update(float dt, const Jugador& jugador)
 {
     if (!activo) return;
 
-    percibir(jugador);   // 1. Sensa el entorno
-    razonar();           // 2. Decide el estado
-    actuar(dt);          // 3. Ejecuta la acción
-    aprender();          // 4. Almacena y aprende
-}
+    // Reducir cooldown de evasión
+    if (cooldownEvasion > 0.0f) {
+        cooldownEvasion -= dt;
+        if (cooldownEvasion < 0.0f) cooldownEvasion = 0.0f;
+    }
 
-// ── moverse — desplazamiento hacia el jugador ────────────────────
-void AngstromLevy::moverse(float dt)
-{
-    float direccion = (xJugadorPercibida > x) ? 1.0f : -1.0f;
-    float velocidad = 2.5f * agresividad;
-    x += direccion * velocidad * dt;
-}
+    // Si está golpeado ejecutar parábola
+    if (golpeado) {
+        tiempoGolpe += dt;
+        float gravedad = 300.0f;
+        x = xInicioGolpe + velXGolpe * tiempoGolpe;
+        y = yInicioGolpe + velYGolpe * tiempoGolpe
+            + 0.5f * gravedad * tiempoGolpe * tiempoGolpe;
 
+        if (x < 0.0f)   x = 0.0f;
+        if (x > 750.0f) x = 750.0f;
+
+        if (y > 480.0f) {
+            y = 480.0f;
+            golpeado     = false;
+            tiempoGolpe  = 0.0f;
+            estadoActual = EstadoIA::AGRESIVO;
+            cooldownEvasion = 1.5f; // después del golpe, Levy es vulnerable un momento
+        }
+
+        return;
+    }
+
+    // Ciclo normal de IA
+    percibir(jugador);
+    razonar();
+    actuar(dt);
+    aprender();
+}
 // ════════════════════════════════════════════════════════════════
 //  1. PERCEPCIÓN
 // ════════════════════════════════════════════════════════════════
 void AngstromLevy::percibir(const Jugador& jugador)
 {
     xJugadorPercibida    = jugador.getX();
+    yJugadorPercibida    = jugador.getY(); // ← agregar
     vidaJugadorPercibida = jugador.getVida();
 
     float dx = jugador.getX() - x;
@@ -78,6 +108,16 @@ void AngstromLevy::percibir(const Jugador& jugador)
 // ════════════════════════════════════════════════════════════════
 void AngstromLevy::razonar()
 {
+    // Si está golpeado no razona
+    if (estadoActual == EstadoIA::GOLPEADO) return;
+
+    // Reducir cooldown de evasión
+    if (cooldownEvasion > 0.0f) {
+        // No puede evadir todavía — ser agresivo
+        estadoActual = EstadoIA::AGRESIVO;
+        return;
+    }
+
     // Prioridad 1 — Levy en peligro crítico
     if (vida < vidaMaxima * UMBRAL_VIDA_DEFENSIVO) {
         estadoActual = EstadoIA::DEFENSIVO;
@@ -100,16 +140,16 @@ void AngstromLevy::razonar()
 void AngstromLevy::actuar(float dt)
 {
     switch (estadoActual) {
-    case EstadoIA::AGRESIVO:  moverse(dt);     break;
-    case EstadoIA::EVASIVO:   teleportarse();  break;
-    case EstadoIA::DEFENSIVO: esperarYDañar(); break;
+    case EstadoIA::AGRESIVO:   moverse(dt);        break;
+    case EstadoIA::EVASIVO:    teleportarse();      break;
+    case EstadoIA::DEFENSIVO:  esperarYDaniar();    break;
+    case EstadoIA::GOLPEADO:   /* manejado en update */ break;
     default:
         throw std::logic_error(
             "EstadoIA desconocido en AngstromLevy::actuar()");
     }
     contadorInteracciones++;
 }
-
 // ════════════════════════════════════════════════════════════════
 //  4. APRENDIZAJE — ventana deslizante de direcciones
 // ════════════════════════════════════════════════════════════════
@@ -130,16 +170,19 @@ void AngstromLevy::aprender()
 // ── Acciones ────────────────────────────────────────────────────
 void AngstromLevy::teleportarse()
 {
-    float offset = (xJugadorPercibida > x) ? -radioPortal : radioPortal;
-    x = xJugadorPercibida + offset;
-}
+    float offsetX = (xJugadorPercibida > x) ? -radioPortal : radioPortal;
+    float offsetY = (yJugadorPercibida > y) ? -radioPortal : radioPortal;
+    x = xJugadorPercibida + offsetX;
+    y = yJugadorPercibida + offsetY;
 
-void AngstromLevy::esperarYDañar()
-{
-    velX = 0.0f;
-    velY = 0.0f;
-}
+    if (x < 0.0f)   x = 0.0f;
+    if (x > 750.0f) x = 750.0f;
+    if (y < 0.0f)   y = 0.0f;
+    if (y > 480.0f) y = 480.0f;
 
+    // Cooldown de 2 segundos entre evasiones
+    cooldownEvasion = 2.0f;
+}
 // ── Helpers del aprendizaje ──────────────────────────────────────
 float AngstromLevy::calcularFrecuenciaDerecha() const
 {
@@ -176,4 +219,46 @@ void AngstromLevy::ajustarParametros()
 AngstromLevy::EstadoIA AngstromLevy::getEstadoActual() const
 {
     return estadoActual;
+}
+
+void AngstromLevy::esperarYDaniar()
+{
+    // En estado defensivo Levy se mueve lateralmente
+    // para esquivar y buscar un ángulo diferente
+    float tiempoLateral = contadorInteracciones * 0.016f;
+    velX = std::sin(tiempoLateral * 2.0f) * 80.0f;
+    velY = 0.0f;
+}
+
+void AngstromLevy::recibirImpacto(float dirX)
+{
+    golpeado       = true;
+    tiempoGolpe    = 0.0f;
+    xInicioGolpe   = x;
+    yInicioGolpe   = y;
+
+    // Velocidad inicial del golpe
+    // dirX: -1 si el jugador está a la derecha (Levy sale a la izquierda)
+    //        1 si el jugador está a la izquierda (Levy sale a la derecha)
+    velXGolpe = dirX * 200.0f;  // velocidad horizontal
+    velYGolpe = -150.0f;        // siempre sube primero (parábola)
+
+    estadoActual = EstadoIA::GOLPEADO;
+}
+void AngstromLevy::moverse(float dt)
+{
+    float dx = xJugadorPercibida - x;
+    float dy = yJugadorPercibida - y;
+
+    float distancia = std::sqrt(dx * dx + dy * dy);
+    if (distancia < 5.0f) return;
+
+    float velocidad = 120.0f * agresividad;
+    x += (dx / distancia) * velocidad * dt;
+    y += (dy / distancia) * velocidad * dt;
+
+    if (x < 0.0f)   x = 0.0f;
+    if (x > 750.0f) x = 750.0f;
+    if (y < 0.0f)   y = 0.0f;
+    if (y > 480.0f) y = 480.0f;
 }

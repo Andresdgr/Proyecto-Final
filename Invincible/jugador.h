@@ -6,24 +6,6 @@
 
 class Jugador : public Entidad {
 
-private:
-
-    // ── Característica: veloz ────────────────────────────────
-    float velBase;
-
-    // ── Característica: fortachón ────────────────────────────
-    bool  cargando;
-    float tiempoCarga;
-
-    // ── Sistema de combo ─────────────────────────────────────
-    uint8_t hitStreak;
-    bool    comboActivo;
-
-    // ── Invulnerabilidad post-golpe ──────────────────────────
-    bool  invulnerable;
-    float tiempoInvulnerable;
-
-
 public:
 
     // ── Constantes de diseño del personaje ──────────────────
@@ -43,17 +25,16 @@ public:
 
     // ── Instrucciones de movimiento (llamadas desde GUI) ─────
     void moverX(float direccion);
-    void detenerX();
-
     void moverY(float direccion);
-    void detenerY();
-
+    void detener();
 
     // ── Instrucciones de ataque ──────────────────────────────
     void iniciarCarga();
     void soltarCarga();
     void atacar();
-    void detenerAtaque();
+    void resetDanio();
+
+
     // ── Sobreescritura con lógica de invulnerabilidad ────────
     void recibirDanio(float cantidad) override;
 
@@ -63,9 +44,29 @@ public:
     bool    isInvulnerable()   const;
     bool    isCargando()       const;
     bool    isComboActivo()    const;
+    //--------------danño por el portal-----------------
+    void recibirDanioAmbiental(float cantidad);
 
+private:
 
+    // ── Característica: veloz ────────────────────────────────
+    float velBase;
+
+    // ── Característica: fortachón ────────────────────────────
+    bool  cargando;
+    float tiempoCarga;
+
+    // ── Sistema de combo ─────────────────────────────────────
+    uint8_t hitStreak;
+    bool    comboActivo;
+
+    // ── Invulnerabilidad post-golpe ──────────────────────────
+    bool  invulnerable;
+    float tiempoInvulnerable;
+
+    // ── Resultado del último ataque ──────────────────────────
     float danioActual;
+
 };
 
 #endif

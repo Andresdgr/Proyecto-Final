@@ -2,32 +2,95 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include "gameengine.h"
+#include <QGraphicsScene>
+#include <QGraphicsView>
+#include <QGraphicsPixmapItem>
+#include <QTimer>
+#include <QElapsedTimer>
 #include <QKeyEvent>
+#include <QMap>
+#include <QSet>
 
-QT_BEGIN_NAMESPACE
+#include "gameengine.h"
+#include "difficultyconfig.h"
+
 namespace Ui { class MainWindow; }
-QT_END_NAMESPACE
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    MainWindow(QWidget *parent = nullptr);
+    explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
-private:
-    Ui::MainWindow *ui;
-
-    // Punteros para manejar el estado actual del juego
-    GameEngine* motorJuego;
-
 protected:
-    // Métodos para capturar el teclado
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
-};
 
+private slots:
+    void onUpdate();
+
+private:
+
+    Ui::MainWindow*        ui;
+
+    // ── Escena y vista ───────────────────────────────────────
+    QGraphicsScene*        escena;
+    QGraphicsView*         vista;
+
+    // ── Game loop ────────────────────────────────────────────
+    QTimer*                timerLoop;
+    QElapsedTimer          reloj;
+
+    // ── Configuración y lógica ───────────────────────────────
+    DifficultyConfig       config;
+    GameEngine*            engine;
+
+    // ── Sprites ──────────────────────────────────────────────
+    QGraphicsPixmapItem*   spriteJugador;
+    QGraphicsPixmapItem*   spriteLevy;
+    QGraphicsPixmapItem*   spritePortal;
+
+    // ── HUD ──────────────────────────────────────────────────
+    QGraphicsRectItem*     barraVidaJugador;
+    QGraphicsRectItem*     barraVidaLevy;
+    QGraphicsTextItem*     textoPuntos;
+    QGraphicsTextItem*     textoTiempo;
+
+    // ── Input ────────────────────────────────────────────────
+    QSet<int>              teclasPresionadas;
+
+    // ── Pantalla de fin ───────────────────────────────────────
+    QGraphicsTextItem*     textoFinJuego;
+    QGraphicsTextItem*     textoReiniciar;
+
+    QGraphicsTextItem*     textoPuntajeFinal; // ← agregar
+
+    void mostrarPantallaFin(bool victoria);
+    void reiniciarJuego();
+
+    // ── Menú de dificultad ────────────────────────────────────
+    QGraphicsTextItem*     textoTitulo;
+    QGraphicsTextItem*     textoFacil;
+    QGraphicsTextItem*     textoNormal;
+    QGraphicsTextItem*     textoDificil;
+    bool                   enMenu;
+    QGraphicsRectItem*     fondoMenu;
+    QGraphicsTextItem*     textoSubtitulo;
+
+    void mostrarMenu();
+    void ocultarMenu();
+
+
+
+    // ── Métodos privados ─────────────────────────────────────
+    void inicializarEscena();
+    void inicializarHUD();
+    void sincronizarSprites();
+    void actualizarHUD();
+    void procesarInput();
+
+};
 
 #endif // MAINWINDOW_H

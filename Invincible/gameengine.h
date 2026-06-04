@@ -1,11 +1,13 @@
 #ifndef GAMEENGINE_H
 #define GAMEENGINE_H
 
-#include "nivel.h"
+#include "jugador.h"
+#include "enemigo.h"
+#include "portal.h"
+#include "physicsengine.h"
 #include "gamestate.h"
 #include "difficultyconfig.h"
-#include "physicsengine.h"
-#include <QGraphicsScene>
+#include <QList>
 #include <cstdint>
 
 class GameEngine {
@@ -20,7 +22,7 @@ public:
     void update(float dt);
 
     // ── Control de niveles ───────────────────────────────────
-    void iniciarNivel(uint8_t nivel, QGraphicsScene* escenaCompartida);
+    void iniciarNivel(uint8_t nivel);
     void pausar();
     void reanudar();
 
@@ -30,26 +32,48 @@ public:
     // ── Acceso al jugador (para input desde GameWidget) ──────
     Jugador* getJugador() const;
 
-    void teclaPresionada(int key);
-    void teclaSoltada(int key);
+    // ── Acceso a posiciones para sincronizar sprites ──────────
+    const QList<Enemigo*>& getEnemigos() const;
+    const QList<Portal*>&  getPortales() const;
+
+    void aplicarAtaqueJugador();
 
 private:
-    // Puntero polimórfico a la clase base del nivel activo
-    // Reemplaza las listas de enemigos, portales y el puntero directo al jugador.
-    Nivel* nivelActual;
+
+    // ── Entidades ────────────────────────────────────────────
+    Jugador*         jugador;
+    QList<Enemigo*>  enemigos;
+    QList<Portal*>   portales;
 
     // ── Servicios y configuración ────────────────────────────
     PhysicsEngine    physics;
     GameState        estado;
     DifficultyConfig config;
 
-    // ── Control de estado interno ────────────────────────────
-    uint8_t  idNivelActivo;
+    // ── Control de tiempo ────────────────────────────────────
+    float    tiempoNivel2;
+    float    tiempoSpawn;
+    uint8_t  nivelActivo;
     bool     pausado;
 
-    // ── Limpieza y sincronización global ─────────────────────
+    // ── Lógica por nivel ─────────────────────────────────────
+    void actualizarNivel1(float dt);
+    void actualizarNivel2(float dt);
+
+    // ── Colisiones ───────────────────────────────────────────
+    void verificarColisiones();
+    bool colisionAABB(float x1, float y1,
+                      float x2, float y2,
+                      float semi1, float semi2) const;
+
+    // ── Limpieza y estado ────────────────────────────────────
+    void limpiarInactivos();
     void actualizarGameState();
     void verificarCondicionFin();
+
+    // ── Spawn de enemigos ────────────────────────────────────
+    void spawnClon();
+
 };
 
-#endif // GAMEENGINE_H
+#endif

@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/sprites">
+        <file>assets/sprites/Amstrongr.png</file>
+        <file>assets/sprites/Escenario.png</file>
+        <file>assets/sprites/Invincible.png</file>
+        <file>assets/sprites/Portal.png</file>
+    </qresource>
+</RCC>
