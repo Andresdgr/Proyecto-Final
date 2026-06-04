@@ -12,7 +12,7 @@ Jugador::Jugador(float x, float y)
     , tiempoInvulnerable(0.0f)
     , danioActual(0.0f)
 {
-    setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Invincible_85x85.png"));
+    setPixmap(QPixmap("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/Sprites/Invincible2_85x85.png"));
 }
 
 // ── Destructor ──────────────────────────────────────────────────

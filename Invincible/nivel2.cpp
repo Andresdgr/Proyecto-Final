@@ -25,7 +25,7 @@ Nivel2::Nivel2(QGraphicsScene* escenaCompartida)
     audioNivel = new QAudioOutput(this);
     musicaFondoNivel->setAudioOutput(audioNivel);
     musicaFondoNivel->setSource(QUrl::fromLocalFile("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/soundtrack/Tom_tom.wav"));
-    audioNivel->setVolume(0.4f);
+    audioNivel->setVolume(0.9f);
     musicaFondoNivel->setLoops(QMediaPlayer::Infinite);
     musicaFondoNivel->play();
 
@@ -41,7 +41,7 @@ Nivel2::Nivel2(QGraphicsScene* escenaCompartida)
     // SONIDO DE GOLPE
     efectoGolpe = new QSoundEffect(this);
     efectoGolpe->setSource(QUrl::fromLocalFile("C:/Users/Andres/OneDrive - Universidad de Antioquia/Escritorio/INFORMATICA_II/Proyecto Final/soundtrack/golpe.wav"));
-    efectoGolpe->setVolume(0.85f); // Volumen al 80%
+    efectoGolpe->setVolume(0.75f); // Volumen al 80%
 }
 
 Nivel2::~Nivel2() {
