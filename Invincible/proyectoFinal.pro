@@ -18,8 +18,6 @@ SOURCES += \
     jugador.cpp \
     main.cpp \
     mainwindow.cpp \
-    nivel.cpp \
-    nivel2.cpp \
     physicsengine.cpp \
     portal.cpp \
     variante.cpp \
@@ -34,8 +32,6 @@ HEADERS += \
     gamestate.h \
     jugador.h \
     mainwindow.h \
-    nivel.h \
-    nivel2.h \
     physicsengine.h \
     portal.h \
     variante.h \
