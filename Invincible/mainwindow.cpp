@@ -7,6 +7,8 @@
 #include <QPainter>
 #include <QTransform>
 #include <QCoreApplication>
+#include <cmath>
+#include "varianteportal.h"
 
 // ── Constructor ─────────────────────────────────────────────────
 MainWindow::MainWindow(QWidget *parent)
@@ -40,6 +42,8 @@ MainWindow::MainWindow(QWidget *parent)
     , mostrandoGolpe(false)
     , contadorGolpe(0)
     , mirandoDerecha(true)
+    , levyGolpeando(false)
+    , contadorLevyGolpe(0)
     , musicaFondo(nullptr)
     , audioFondo(nullptr)
     , efectoGolpe(nullptr)
@@ -184,11 +188,24 @@ void MainWindow::inicializarEscena()
 
     // ── Sprite Levy ───────────────────────────────────────────
     spriteLevy = new QGraphicsPixmapItem();
-    QPixmap pixLevy(":/sprites/assets/sprites/Amstrongr.png");
-    pixLevy = pixLevy.scaled(70, 90,
-                             Qt::KeepAspectRatio,
-                             Qt::SmoothTransformation);
-    spriteLevy->setPixmap(pixLevy);
+
+    pixLevyNormal = QPixmap(":/sprites/assets/sprites/Amstrongr.png");
+    pixLevyNormal = pixLevyNormal.scaled(70, 90,
+                                         Qt::KeepAspectRatio,
+                                         Qt::SmoothTransformation);
+
+    pixLevyNormalIzq = pixLevyNormal.transformed(
+        QTransform().scale(-1, 1));
+
+    pixLevyGolpe = QPixmap(":/sprites/assets/sprites/levi_golpe.png");
+    pixLevyGolpe = pixLevyGolpe.scaled(70, 90,
+                                       Qt::KeepAspectRatio,
+                                       Qt::SmoothTransformation);
+
+    pixLevyGolpeIzq = pixLevyGolpe.transformed(
+        QTransform().scale(-1, 1));
+
+    spriteLevy->setPixmap(pixLevyNormal);
     spriteLevy->setPos(600, 300);
     spriteLevy->setZValue(1);
     escena->addItem(spriteLevy);
@@ -414,7 +431,7 @@ void MainWindow::keyReleaseEvent(QKeyEvent *event)
 // ── sincronizarSprites ───────────────────────────────────────────
 void MainWindow::sincronizarSprites()
 {
-    // ── Efecto de golpe ───────────────────────────────────────
+    // ── Efecto de golpe jugador ───────────────────────────────
     if (mostrandoGolpe) {
         contadorGolpe++;
         if (contadorGolpe >= 12) {
@@ -440,11 +457,52 @@ void MainWindow::sincronizarSprites()
     const QList<Enemigo*>& enemigos = engine->getEnemigos();
 
     if (engine->getEstado().getNivel() == 1) {
+        // ── Levy Nivel 1 ──────────────────────────────────────
         if (!enemigos.isEmpty() && spriteLevy) {
-            spriteLevy->setPos(enemigos[0]->getX(), enemigos[0]->getY());
-            spriteLevy->setVisible(enemigos[0]->isActivo());
+            Enemigo* levy = enemigos[0];
+            spriteLevy->setPos(levy->getX(), levy->getY());
+            spriteLevy->setVisible(levy->isActivo());
+
+            if (jug && levy->isActivo()) {
+                float dx   = levy->getX() - jug->getX();
+                float dy   = levy->getY() - jug->getY();
+                float dist = std::sqrt(dx * dx + dy * dy);
+
+                bool levyMiraDerecha = jug->getX() > levy->getX();
+
+                if (dist < 80.0f && !levyGolpeando) {
+                    levyGolpeando     = true;
+                    contadorLevyGolpe = 0;
+                    if (levyMiraDerecha) {
+                        spriteLevy->setPixmap(pixLevyGolpe);
+                    } else {
+                        spriteLevy->setPixmap(pixLevyGolpeIzq);
+                    }
+                } else if (!levyGolpeando) {
+                    if (levyMiraDerecha) {
+                        spriteLevy->setPixmap(pixLevyNormal);
+                    } else {
+                        spriteLevy->setPixmap(pixLevyNormalIzq);
+                    }
+                }
+
+                // Contador para volver al sprite normal
+                if (levyGolpeando) {
+                    contadorLevyGolpe++;
+                    if (contadorLevyGolpe >= 12) {
+                        levyGolpeando     = false;
+                        contadorLevyGolpe = 0;
+                        if (levyMiraDerecha) {
+                            spriteLevy->setPixmap(pixLevyNormal);
+                        } else {
+                            spriteLevy->setPixmap(pixLevyNormalIzq);
+                        }
+                    }
+                }
+            }
         }
     } else {
+        // ── Clones y proyectiles Nivel 2 ──────────────────────
         if (spriteLevy) spriteLevy->setVisible(false);
 
         for (QGraphicsPixmapItem* s : spritesClones) {
@@ -453,18 +511,30 @@ void MainWindow::sincronizarSprites()
         }
         spritesClones.clear();
 
-        QPixmap pixClon(":/sprites/Sprites/Capevincible_85x85.png");
-        pixClon = pixClon.scaled(60, 80,
-                                 Qt::KeepAspectRatio,
-                                 Qt::SmoothTransformation);
+        QPixmap pixVariante(":/sprites/Sprites/Capevincible_85x85.png");
+        pixVariante = pixVariante.scaled(60, 80,
+                                         Qt::KeepAspectRatio,
+                                         Qt::SmoothTransformation);
+
+        QPixmap pixProyectil(":/sprites/Sprites/Viltrumincible_85x85.png");
+        pixProyectil = pixProyectil.scaled(50, 50,
+                                           Qt::KeepAspectRatio,
+                                           Qt::SmoothTransformation);
 
         for (Enemigo* e : enemigos) {
             if (!e->isActivo()) continue;
 
             QGraphicsPixmapItem* sprClon = new QGraphicsPixmapItem();
-            sprClon->setPixmap(pixClon);
+
+            VariantePortal* vp = dynamic_cast<VariantePortal*>(e);
+            if (vp) {
+                sprClon->setPixmap(pixProyectil);
+            } else {
+                sprClon->setPixmap(pixVariante);
+            }
+
             sprClon->setPos(e->getX(), e->getY());
-            sprClon->setZValue(1);
+            sprClon->setZValue(2);
             escena->addItem(sprClon);
             spritesClones.append(sprClon);
         }
@@ -607,9 +677,11 @@ void MainWindow::reiniciarJuego()
     }
     spritesClones.clear();
 
-    mirandoDerecha = true;
-    mostrandoGolpe = false;
-    contadorGolpe  = 0;
+    mirandoDerecha    = true;
+    mostrandoGolpe    = false;
+    contadorGolpe     = 0;
+    levyGolpeando     = false;
+    contadorLevyGolpe = 0;
 
     cambiarFondo(1);
     mostrarMenu();

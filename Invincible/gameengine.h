@@ -55,10 +55,12 @@ private:
     float    tiempoSpawn;
     uint8_t  nivelActivo;
     bool     pausado;
+    float tiempoProyectil;  // contador para spawn de proyectiles
 
     // ── Lógica por nivel ─────────────────────────────────────
     void actualizarNivel1(float dt);
     void actualizarNivel2(float dt);
+
 
     // ── Colisiones ───────────────────────────────────────────
     void verificarColisiones();
@@ -73,6 +75,8 @@ private:
 
     // ── Spawn de enemigos ────────────────────────────────────
     void spawnClon();
+    void spawnProyectil();
+
 
 };
 

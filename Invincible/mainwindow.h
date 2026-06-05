@@ -66,6 +66,14 @@ private:
     int                    contadorGolpe;
     bool                   mirandoDerecha;
 
+    // ── Pixmaps Levy ──────────────────────────────────────────
+    QPixmap                pixLevyNormal;
+    QPixmap                pixLevyNormalIzq;
+    QPixmap                pixLevyGolpe;
+    QPixmap                pixLevyGolpeIzq;
+    bool                   levyGolpeando;
+    int                    contadorLevyGolpe;
+
     // ── HUD ──────────────────────────────────────────────────
     QGraphicsRectItem*     barraVidaJugador;
     QGraphicsRectItem*     barraVidaLevy;

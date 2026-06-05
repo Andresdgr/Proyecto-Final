@@ -1,8 +1,10 @@
 #include "gameengine.h"
 #include "angstromlevy.h"
 #include "variante.h"
+#include "varianteportal.h"
 #include <stdexcept>
 #include <cstdlib>
+#include <cmath>
 
 // ── Constructor ─────────────────────────────────────────────────
 GameEngine::GameEngine(const DifficultyConfig& config)
@@ -11,6 +13,7 @@ GameEngine::GameEngine(const DifficultyConfig& config)
     , config(config)
     , tiempoNivel2(60.0f)
     , tiempoSpawn(0.0f)
+    , tiempoProyectil(0.0f)
     , nivelActivo(0)
     , pausado(false)
 {
@@ -119,13 +122,20 @@ void GameEngine::actualizarNivel2(float dt)
     if (tiempoNivel2 < 0.0f) tiempoNivel2 = 0.0f;
     estado.setTiempoRestante(tiempoNivel2);
 
-    // Spawn solo si hay menos de 6 enemigos activos
+    // Spawn variantes — máximo 6
     if (enemigos.size() < 6) {
         tiempoSpawn += dt;
         if (tiempoSpawn >= config.frecuenciaSpawn) {
             spawnClon();
             tiempoSpawn = 0.0f;
         }
+    }
+
+    // Spawn proyectil desde portal cada 3 segundos
+    tiempoProyectil += dt;
+    if (tiempoProyectil >= 3.0f) {
+        spawnProyectil();
+        tiempoProyectil = 0.0f;
     }
 
     for (Enemigo* e : enemigos) {
@@ -140,7 +150,6 @@ void GameEngine::actualizarNivel2(float dt)
         }
     }
 }
-
 // ── aplicarAtaqueJugador ─────────────────────────────────────────
 void GameEngine::aplicarAtaqueJugador()
 {
@@ -320,3 +329,32 @@ const GameState&       GameEngine::getEstado()   const { return estado;   }
 Jugador*               GameEngine::getJugador()  const { return jugador;  }
 const QList<Enemigo*>& GameEngine::getEnemigos() const { return enemigos; }
 const QList<Portal*>&  GameEngine::getPortales() const { return portales; }
+
+
+void GameEngine::spawnProyectil()
+{
+    if (!jugador || !jugador->isActivo()) return;
+    if (portales.isEmpty()) return;
+
+    Portal* portal = portales[0];
+    float xP = portal->getX();
+    float yP = portal->getY();
+
+    float dx   = jugador->getX() - xP;
+    float dy   = jugador->getY() - yP;
+    float dist = std::sqrt(dx * dx + dy * dy);
+
+    if (dist < 1.0f) return;
+
+    VariantePortal* proy = new VariantePortal(
+        xP, yP,
+        1.0f,
+        1.0f,
+        config.danioLevy * 0.3f,
+        0);
+
+    float vel = 300.0f;
+    proy->setVelocidad((dx / dist) * vel, (dy / dist) * vel);
+
+    enemigos.append(proy);
+}
