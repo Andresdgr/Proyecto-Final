@@ -4,5 +4,17 @@
         <file>assets/sprites/Escenario.png</file>
         <file>assets/sprites/Invincible.png</file>
         <file>assets/sprites/Portal.png</file>
+        <file>Sprites/Capevincible_85x85.png</file>
+        <file>Sprites/Full-Mask-Mark.png</file>
+        <file>Sprites/Hoodvincible_85x85.png</file>
+        <file>Sprites/Invincible_85x85.png</file>
+        <file>Sprites/Movincihawk_85x85.png</file>
+        <file>Sprites/Nivel_2.png</file>
+        <file>Sprites/Omni-Mark_85x85.png</file>
+        <file>Sprites/Portal.png</file>
+        <file>Sprites/Viltrumincible_85x85.png</file>
+        <file>assets/sprites/invinsibleGolpeSinFondo.png</file>
+        <file>assets/sprites/Viltrumincible_85x85.png</file>
+        <file>assets/sprites/levi_golpe.png</file>
     </qresource>
 </RCC>

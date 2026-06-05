@@ -97,7 +97,7 @@ void Jugador::soltarCarga()
 // ── atacar ──────────────────────────────────────────────────────
 void Jugador::atacar()
 {
-    float danioBase = 5.0f;
+    float danioBase = 12.0f;
 
     // Determinar si el golpe es poderoso
     bool golpePotente = (tiempoCarga >= UMBRAL_CARGA) || comboActivo;
