@@ -8,8 +8,11 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QKeyEvent>
-#include <QMap>
 #include <QSet>
+#include <QList>
+#include <QMediaPlayer>
+#include <QAudioOutput>
+#include <QSoundEffect>
 
 #include "gameengine.h"
 #include "difficultyconfig.h"
@@ -51,38 +54,49 @@ private:
     QGraphicsPixmapItem*   spriteJugador;
     QGraphicsPixmapItem*   spriteLevy;
     QGraphicsPixmapItem*   spritePortal;
+    QGraphicsPixmapItem*   itemFondo;
+    QList<QGraphicsPixmapItem*> spritesClones;
+
+    // ── Pixmaps jugador ───────────────────────────────────────
+    QPixmap                pixJugadorNormal;
+    QPixmap                pixJugadorNormalIzq;
+    QPixmap                pixJugadorGolpe;
+    QPixmap                pixJugadorGolpeIzq;
+    bool                   mostrandoGolpe;
+    int                    contadorGolpe;
+    bool                   mirandoDerecha;
 
     // ── HUD ──────────────────────────────────────────────────
     QGraphicsRectItem*     barraVidaJugador;
     QGraphicsRectItem*     barraVidaLevy;
+    QGraphicsRectItem*     fondoVidaLevy;
+    QGraphicsTextItem*     labelLevy;
     QGraphicsTextItem*     textoPuntos;
     QGraphicsTextItem*     textoTiempo;
-
-    // ── Input ────────────────────────────────────────────────
-    QSet<int>              teclasPresionadas;
 
     // ── Pantalla de fin ───────────────────────────────────────
     QGraphicsTextItem*     textoFinJuego;
     QGraphicsTextItem*     textoReiniciar;
+    QGraphicsTextItem*     textoPuntajeFinal;
 
-    QGraphicsTextItem*     textoPuntajeFinal; // ← agregar
-
-    void mostrarPantallaFin(bool victoria);
-    void reiniciarJuego();
-
-    // ── Menú de dificultad ────────────────────────────────────
+    // ── Menú ──────────────────────────────────────────────────
+    QGraphicsRectItem*     fondoMenu;
     QGraphicsTextItem*     textoTitulo;
+    QGraphicsTextItem*     textoSubtitulo;
     QGraphicsTextItem*     textoFacil;
     QGraphicsTextItem*     textoNormal;
     QGraphicsTextItem*     textoDificil;
     bool                   enMenu;
-    QGraphicsRectItem*     fondoMenu;
-    QGraphicsTextItem*     textoSubtitulo;
 
-    void mostrarMenu();
-    void ocultarMenu();
+    // ── Audio ─────────────────────────────────────────────────
+    QMediaPlayer*          musicaFondo;
+    QAudioOutput*          audioFondo;
+    QSoundEffect*          efectoGolpe;
+    QSoundEffect*          efectoVictoria;
+    QSoundEffect*          efectoDerrota;
 
-
+    // ── Input ────────────────────────────────────────────────
+    QSet<int>              teclasPresionadas;
 
     // ── Métodos privados ─────────────────────────────────────
     void inicializarEscena();
@@ -90,7 +104,12 @@ private:
     void sincronizarSprites();
     void actualizarHUD();
     void procesarInput();
-
+    void mostrarPantallaFin(bool victoria);
+    void reiniciarJuego();
+    void mostrarMenu();
+    void ocultarMenu();
+    void cambiarFondo(int nivel);
+    void cambiarMusica(int nivel);
 };
 
 #endif // MAINWINDOW_H

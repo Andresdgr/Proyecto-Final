@@ -1,6 +1,8 @@
 #include "gameengine.h"
 #include "angstromlevy.h"
+#include "variante.h"
 #include <stdexcept>
+#include <cstdlib>
 
 // ── Constructor ─────────────────────────────────────────────────
 GameEngine::GameEngine(const DifficultyConfig& config)
@@ -60,6 +62,13 @@ void GameEngine::iniciarNivel(uint8_t nivel)
         tiempoSpawn  = 0.0f;
         estado.setTiempoRestante(tiempoNivel2);
 
+        // Portal orbital para Nivel 2
+        Portal* portal = new Portal(400.0f, 250.0f,
+                                    config.radioPortalNivel2,
+                                    config.omegaPortal,
+                                    0.0f);
+        portales.append(portal);
+
     } else {
         throw std::invalid_argument(
             "GameEngine::iniciarNivel — nivel debe ser 1 o 2");
@@ -110,10 +119,13 @@ void GameEngine::actualizarNivel2(float dt)
     if (tiempoNivel2 < 0.0f) tiempoNivel2 = 0.0f;
     estado.setTiempoRestante(tiempoNivel2);
 
-    tiempoSpawn += dt;
-    if (tiempoSpawn >= config.frecuenciaSpawn) {
-        spawnClon();
-        tiempoSpawn = 0.0f;
+    // Spawn solo si hay menos de 6 enemigos activos
+    if (enemigos.size() < 6) {
+        tiempoSpawn += dt;
+        if (tiempoSpawn >= config.frecuenciaSpawn) {
+            spawnClon();
+            tiempoSpawn = 0.0f;
+        }
     }
 
     for (Enemigo* e : enemigos) {
@@ -138,7 +150,6 @@ void GameEngine::aplicarAtaqueJugador()
     float xJ = jugador->getX();
     float yJ = jugador->getY();
 
-    // Rango de ataque ligeramente mayor que el sprite
     float jIzq    = xJ - 20.0f;
     float jDer    = xJ + 80.0f;
     float jArriba = yJ - 10.0f;
@@ -161,6 +172,7 @@ void GameEngine::aplicarAtaqueJugador()
             e->recibirDanio(jugador->getDanioActual());
             estado.sumarPuntos(10);
 
+            // Impulso parabólico solo para AngstromLevy
             AngstromLevy* levy = dynamic_cast<AngstromLevy*>(e);
             if (levy) {
                 float dirX = (e->getX() > xJ) ? 1.0f : -1.0f;
@@ -178,13 +190,12 @@ void GameEngine::verificarColisiones()
     float xJ = jugador->getX();
     float yJ = jugador->getY();
 
-    // Bounding box del jugador (60x80px)
     float jIzq    = xJ;
     float jDer    = xJ + 60.0f;
     float jArriba = yJ;
     float jAbajo  = yJ + 80.0f;
 
-    // Levy daña al jugador por contacto de borde
+    // Enemigos dañan al jugador por contacto
     for (Enemigo* e : enemigos) {
         if (!e->isActivo()) continue;
 
@@ -203,7 +214,7 @@ void GameEngine::verificarColisiones()
         }
     }
 
-    // Portal — daño ambiental continuo, ignora invulnerabilidad
+    // Portal — daño ambiental continuo
     for (Portal* p : portales) {
         if (!p->isActivo()) continue;
 
@@ -279,6 +290,25 @@ void GameEngine::verificarCondicionFin()
 // ── spawnClon ────────────────────────────────────────────────────
 void GameEngine::spawnClon()
 {
+    if (!jugador || !jugador->isActivo()) return;
+
+    float x, y;
+    int borde = rand() % 4;
+
+    switch (borde) {
+    case 0: x = 0.0f;   y = static_cast<float>(rand() % 480); break;
+    case 1: x = 750.0f; y = static_cast<float>(rand() % 480); break;
+    case 2: x = static_cast<float>(rand() % 750); y = 0.0f;   break;
+    case 3: x = static_cast<float>(rand() % 750); y = 480.0f; break;
+    default: x = 0.0f; y = 0.0f;
+    }
+
+    Variante* clon = new Variante(x, y,
+                                  50.0f,
+                                  40.0f,
+                                  config.danioLevy * 0.5f,
+                                  50);
+    enemigos.append(clon);
 }
 
 // ── pausar / reanudar ────────────────────────────────────────────
