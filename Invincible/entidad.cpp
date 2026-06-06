@@ -83,3 +83,10 @@ void Entidad::reducirTiempoRecuperacion(float dt) {
         if (tiempoRecuperacionGolpe < 0.0f) tiempoRecuperacionGolpe = 0.0f;
     }
 }
+
+void Entidad::setVida(float nuevaVida)
+{
+    if (nuevaVida <= 0.0f) return;
+    vida       = nuevaVida;
+    vidaMaxima = nuevaVida;
+}

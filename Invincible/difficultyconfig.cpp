@@ -30,6 +30,11 @@ DifficultyConfig DifficultyConfig::facil()
     cfg.danioPortal      = 3.0f;
     cfg.danioLevy        = 5.0f;
 
+    cfg.velBaseLevy         = 80.0f;   // Levy lento
+    cfg.cooldownEvasionLevy = 3.5f;    // evade poco
+    cfg.velVoladora         = 130.0f;  // proyectiles lentos
+    cfg.vidaJugador         = 500.0f;  // jugador aguanta más
+
     return cfg;
 }
 
@@ -55,6 +60,11 @@ DifficultyConfig DifficultyConfig::normal()
 
     cfg.danioPortal      = 6.0f;
     cfg.danioLevy        = 8.0f;
+
+    cfg.velBaseLevy         = 120.0f;  // velocidad actual hardcoded
+    cfg.cooldownEvasionLevy = 2.0f;    // actual
+    cfg.velVoladora         = 200.0f;  // actual
+    cfg.vidaJugador         = 400.0f;  // actual
 
     return cfg;
 }
@@ -88,6 +98,11 @@ DifficultyConfig DifficultyConfig::dificil()
     // Daño alto
     cfg.danioPortal      = 12.0f;
     cfg.danioLevy        = 12.0f;
+
+    cfg.velBaseLevy         = 185.0f;  // Levy muy rápido
+    cfg.cooldownEvasionLevy = 0.7f;    // evade casi sin parar
+    cfg.velVoladora         = 300.0f;  // proyectiles rápidos
+    cfg.vidaJugador         = 260.0f;  // jugador fragil
 
     return cfg;
 }

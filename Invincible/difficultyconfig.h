@@ -24,6 +24,11 @@ public:
     // ── Agente IA ────────────────────────────────────────────
     float agresividadIA;
 
+    float velBaseLevy;          // velocidad de movimiento de Levy
+    float cooldownEvasionLevy;  // segundos entre evasiones de Levy
+    float velVoladora;          // velocidad de proyectiles VariantePortal
+    float vidaJugador;          // vida inicial del jugador
+
     // ── Spawn de enemigos ────────────────────────────────────
     float frecuenciaSpawn;
 

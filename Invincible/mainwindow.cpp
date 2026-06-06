@@ -14,6 +14,15 @@
 #include "variante.h"
 #include "angstromlevy.h"
 
+
+// ── Inicializar audio ─────────────────────────────────────
+static const QString MUSICA_MENU   = "qrc:/soundtrack/win.mp3";
+static const QString MUSICA_NIVEL1 = "qrc:/soundtrack/levy.mp3";
+static const QString MUSICA_NIVEL2 = "qrc:/soundtrack/Tom_tom.mp3";
+
+static const QString SFX_GOLPE     = "qrc:/soundtrack/golpe.wav";
+static const QString SFX_VICTORIA  = "qrc:/soundtrack/win.wav";
+static const QString SFX_DERROTA   = "qrc:/soundtrack/lose.wav";
 // ── Constructor ─────────────────────────────────────────────────
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -81,25 +90,25 @@ MainWindow::MainWindow(QWidget *parent)
 
     reloj.start();
 
-    // ── Inicializar audio ─────────────────────────────────────
-    QString rutaBase = QCoreApplication::applicationDirPath() + "/soundtrack/";
 
+    // ── Música de fondo
     musicaFondo = new QMediaPlayer(this);
     audioFondo  = new QAudioOutput(this);
     musicaFondo->setAudioOutput(audioFondo);
     audioFondo->setVolume(0.4f);
-    musicaFondo->setLoops(QMediaPlayer::Infinite); // Bucle infinito para música
+    musicaFondo->setLoops(QMediaPlayer::Infinite);
 
+    // ── Efectos de sonido
     efectoGolpe = new QSoundEffect(this);
-    efectoGolpe->setSource(QUrl::fromLocalFile(rutaBase + "golpe.mp3"));
-    efectoGolpe->setVolume(0.8f);
+    efectoGolpe->setSource(QUrl(SFX_GOLPE));
+    efectoGolpe->setVolume(0.5f);
 
     efectoVictoria = new QSoundEffect(this);
-    efectoVictoria->setSource(QUrl::fromLocalFile(rutaBase + "win.mp3"));
+    efectoVictoria->setSource(QUrl(SFX_VICTORIA));
     efectoVictoria->setVolume(1.0f);
 
     efectoDerrota = new QSoundEffect(this);
-    efectoDerrota->setSource(QUrl::fromLocalFile(rutaBase + "lose.mp3"));
+    efectoDerrota->setSource(QUrl(SFX_DERROTA));
     efectoDerrota->setVolume(1.0f);
 
     dibujarMenuPrincipal(); // Se ajustó a tu método actual
@@ -133,22 +142,15 @@ void MainWindow::iniciarJuego(int nivel)
 // ── cambiarMusica ────────────────────────────────────────────────
 void MainWindow::cambiarMusica(int estadoMusica)
 {
-    QUrl nuevaRuta;
-
-    // Detener efectos cortos si estaban sonando
     efectoVictoria->stop();
     efectoDerrota->stop();
 
-    // Determinar qué debe sonar
+    QUrl nuevaRuta;
+
     switch (estadoMusica) {
-    case 0: // Menú
-    case 1: // Nivel 1
-        // Usamos el archivo de tu .qrc
-        nuevaRuta = QUrl("qrc:/soundtrack/levy.mp3");
-        break;
-    case 2: // Nivel 2
-        nuevaRuta = QUrl("qrc:/soundtrack/Tom_tom.mp3");
-        break;
+    case 0: nuevaRuta = QUrl(MUSICA_MENU);   break; // Menú
+    case 1: nuevaRuta = QUrl(MUSICA_NIVEL1); break; // Nivel 1
+    case 2: nuevaRuta = QUrl(MUSICA_NIVEL2); break; // Nivel 2
     case 3: // Victoria Nivel 1
     case 4: // Victoria Nivel 2
         musicaFondo->stop();
@@ -160,11 +162,10 @@ void MainWindow::cambiarMusica(int estadoMusica)
         efectoDerrota->play();
         return;
     default:
-        nuevaRuta = QUrl("qrc:/soundtrack/levy.mp3");
+        nuevaRuta = QUrl(MUSICA_MENU);
         break;
     }
 
-    // Solo cambiar el archivo si es una pista diferente
     if (musicaFondo->source() != nuevaRuta) {
         musicaFondo->stop();
         musicaFondo->setSource(nuevaRuta);
@@ -173,7 +174,6 @@ void MainWindow::cambiarMusica(int estadoMusica)
         musicaFondo->play();
     }
 }
-
 // ── cambiarFondo ─────────────────────────────────────────────────
 void MainWindow::cambiarFondo(int nivel)
 {
@@ -185,7 +185,7 @@ void MainWindow::cambiarFondo(int nivel)
 
     QPixmap pixFondo;
     if (nivel == 1) {
-        pixFondo = QPixmap(":/sprites/assets/sprites/Escenario.png");
+        pixFondo = QPixmap(":/sprites/Sprites/Escenario.png");
     } else {
         pixFondo = QPixmap(":/sprites/Sprites/Nivel_2.png");
     }

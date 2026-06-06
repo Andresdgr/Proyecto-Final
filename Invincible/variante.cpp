@@ -8,6 +8,8 @@ Variante::Variante(float x, float y, float vida, float masa,
     , estado(Estado::RODEAR)
     , angulo(0.0f)
     , tiempoEnEstado(0.0f)
+    , velRodear(150.0f)
+    , velAtacar(200.0f)
 {}
 
 void Variante::update(float dt)
@@ -43,7 +45,7 @@ void Variante::update(float dt, const Jugador& jugador)
     float dist = std::sqrt(dx * dx + dy * dy);
 
     if (dist > 5.0f) {
-        float velActual = (estado == Estado::ATACAR) ? 200.0f : 150.0f;
+        float velActual = (estado == Estado::ATACAR) ? velAtacar : velRodear;
         velX = (dx / dist) * velActual * 1.5f;
         velY = (dy / dist) * velActual * 1.5f;
     } else {
@@ -72,3 +74,9 @@ void Variante::setEstado(Estado nuevoEstado)
 
 Variante::Estado Variante::getEstado() const { return estado; }
 void Variante::setAngulo(float nuevoAngulo)  { angulo = nuevoAngulo; }
+
+void Variante::setVelocidades(float vRodear, float vAtacar)
+{
+    velRodear = vRodear;
+    velAtacar = vAtacar;
+}

@@ -14,3 +14,8 @@ Enemigo::~Enemigo()
 
 float    Enemigo::getDanio()            const { return danio;            }
 uint16_t Enemigo::getPuntosAlDerrotar() const { return puntosAlDerrotar; }
+
+void Enemigo::setDanio(float nuevoDanio)
+{
+    if (nuevoDanio >= 0.0f) danio = nuevoDanio;
+}

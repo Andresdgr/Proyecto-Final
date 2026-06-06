@@ -29,6 +29,7 @@ public:
     void setPosicion(float nuevoX, float nuevoY);
     void setVelocidad(float vX, float vY);
     void reducirTiempoRecuperacion(float dt);
+    void setVida(float nuevaVida);
 
 protected:
     float x;

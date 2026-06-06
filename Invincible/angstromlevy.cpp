@@ -23,6 +23,8 @@ AngstromLevy::AngstromLevy(float x, float y)
     , yInicioGolpe(0.0f)
     , velXGolpe(0.0f)
     , velYGolpe(0.0f)
+    , velocidadBase(120.0f)
+    , cooldownEvasionBase(2.0f)
     , tiempoEntreEvasiones(0.0f)
     , cooldownEvasion(0.0f)
 {
@@ -70,7 +72,7 @@ void AngstromLevy::update(float dt, const Jugador& jugador)
             golpeado     = false;
             tiempoGolpe  = 0.0f;
             estadoActual = EstadoIA::AGRESIVO;
-            cooldownEvasion = 1.5f; // después del golpe, Levy es vulnerable un momento
+            cooldownEvasion = cooldownEvasionBase * 0.75f;
         }
 
         return;
@@ -181,7 +183,7 @@ void AngstromLevy::teleportarse()
     if (y > 480.0f) y = 480.0f;
 
     // Cooldown de 2 segundos entre evasiones
-    cooldownEvasion = 2.0f;
+    cooldownEvasion = cooldownEvasionBase;
 }
 // ── Helpers del aprendizaje ──────────────────────────────────────
 float AngstromLevy::calcularFrecuenciaDerecha() const
@@ -253,7 +255,7 @@ void AngstromLevy::moverse(float dt)
     float distancia = std::sqrt(dx * dx + dy * dy);
     if (distancia < 5.0f) return;
 
-    float velocidad = 120.0f * agresividad;
+    float velocidad = velocidadBase * agresividad;
     x += (dx / distancia) * velocidad * dt;
     y += (dy / distancia) * velocidad * dt;
 
@@ -261,4 +263,11 @@ void AngstromLevy::moverse(float dt)
     if (x > 750.0f) x = 750.0f;
     if (y < 0.0f)   y = 0.0f;
     if (y > 480.0f) y = 480.0f;
+}
+
+void AngstromLevy::aplicarDificultad(float agr, float velBase, float cdBase)
+{
+    agresividad       = agr;
+    velocidadBase     = velBase;
+    cooldownEvasionBase = cdBase;
 }

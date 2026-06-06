@@ -46,6 +46,8 @@ public:
     EstadoIA getEstadoActual() const;
 
     void recibirImpacto(float dirX); // dirX: dirección del golpe
+    void aplicarDificultad(float agresividad, float velocidadBase,
+                           float cooldownBase);
 
 private:
 
@@ -55,6 +57,8 @@ private:
     float                   agresividad;
     float                   radioPortal;
     uint16_t                contadorInteracciones;
+    float velocidadBase;
+    float cooldownEvasionBase;
 
     // ── Datos percibidos (snapshot del entorno) ──────────────
     float    distanciaAlJugador;

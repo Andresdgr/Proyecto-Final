@@ -16,11 +16,14 @@ public:
     void setEstado(Estado nuevoEstado);
     Estado getEstado() const;
     void setAngulo(float nuevoAngulo);
+    void setVelocidades(float velRodear, float velAtacar);
 
 private:
     Estado estado;
     float angulo;
     float tiempoEnEstado;
+    float velRodear;
+    float velAtacar;
 };
 
 #endif // VARIANTE_H

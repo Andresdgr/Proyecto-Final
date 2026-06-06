@@ -24,6 +24,7 @@ public:
 
     float    getDanio()             const;
     uint16_t getPuntosAlDerrotar()  const;
+    void     setDanio(float nuevoDanio);
 
 protected:
 

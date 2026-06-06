@@ -64,7 +64,14 @@ void GameEngine::iniciarNivel(uint8_t nivel)
 
     if (nivel == 1) {
         AngstromLevy* levy = new AngstromLevy(600.0f, 300.0f);
+        // dificultad a Levy
+        levy->aplicarDificultad(config.agresividadIA,
+                                config.velBaseLevy,
+                                config.cooldownEvasionLevy);
+        levy->setDanio(config.danioLevy);
         enemigos.append(levy);
+        // Jugador también recibe vida de la config
+        jugador->setVida(config.vidaJugador);
 
         Portal* portal = new Portal(400.0f, 250.0f,
                                     config.amplitudMAS,
@@ -75,6 +82,7 @@ void GameEngine::iniciarNivel(uint8_t nivel)
         tiempoNivel2 = 90.0f;
         tiempoSpawn  = 0.0f;
         estado.setTiempoRestante(tiempoNivel2);
+        jugador->setVida(config.vidaJugador);
 
         // 4 variantes de combate + 2 voladoras — lista polimórfica
         for (int i = 0; i < 6; ++i) {
@@ -82,11 +90,14 @@ void GameEngine::iniciarNivel(uint8_t nivel)
             if (i == 2 || i == 5) {
                 v = new VariantePortal(-1000.0f, -1000.0f,
                                        300.0f, 75.0f,
-                                       config.danioLevy * 0.4f, 150);
+                                       config.danioLevy * 0.6f, 150);
             } else {
-                v = new Variante(-1000.0f, -1000.0f,
+                Variante* vc = new Variante(-1000.0f, -1000.0f,
                                  500.0f, 75.0f,
-                                 config.danioLevy * 0.5f, 100);
+                                 config.danioLevy * 0.8f, 100);
+                vc->setVelocidades(config.velVarianteBase,
+                                   config.velVarianteBase * 1.4f);
+                v = vc;
             }
             v->hide();
             enemigos.append(v);
@@ -472,8 +483,8 @@ void GameEngine::spawnVoladora()
             float magnitud = std::sqrt(dx * dx + dy * dy);
 
             if (magnitud > 0.0f) {
-                vp->setVelocidad((dx / magnitud) * 200.0f,
-                                 (dy / magnitud) * 200.0f);
+                vp->setVelocidad((dx / magnitud) * config.velVoladora,
+                                 (dy / magnitud) * config.velVoladora);
             }
             vp->show();
             totalVariantesSpawneadas++;
@@ -521,7 +532,9 @@ void GameEngine::gestionarPortalesEntorno(float dt)
     // Crear portales nuevos — sin escena, MainWindow los agrega al sincronizar
     while (portales.size() < targetPortales) {
         float fase = static_cast<float>(rand() % 360) * 3.14159f / 180.0f;
-        Portal* p = new Portal(380.0f, 250.0f, 320.0f, 1.0f, fase);
+        Portal* p = new Portal(380.0f, 250.0f,
+                               config.radioPortalNivel2,
+                               config.omegaPortal, fase);
         portales.append(p);
     }
     while (portales.size() > targetPortales && !portales.isEmpty()) {
