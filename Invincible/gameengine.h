@@ -4,6 +4,7 @@
 #include "jugador.h"
 #include "enemigo.h"
 #include "portal.h"
+#include "varianteportal.h"
 #include "physicsengine.h"
 #include "gamestate.h"
 #include "difficultyconfig.h"
@@ -13,33 +14,22 @@
 class GameEngine {
 
 public:
-
-    // ── Constructor y destructor ─────────────────────────────
     explicit GameEngine(const DifficultyConfig& config);
     ~GameEngine();
 
-    // ── Ciclo principal llamado por QTimer ───────────────────
     void update(float dt);
-
-    // ── Control de niveles ───────────────────────────────────
     void iniciarNivel(uint8_t nivel);
     void pausar();
     void reanudar();
 
-    // ── Acceso al estado (solo lectura para la GUI) ──────────
-    const GameState& getEstado() const;
-
-    // ── Acceso al jugador (para input desde GameWidget) ──────
-    Jugador* getJugador() const;
-
-    // ── Acceso a posiciones para sincronizar sprites ──────────
+    const GameState&       getEstado()   const;
+    Jugador*               getJugador()  const;
     const QList<Enemigo*>& getEnemigos() const;
     const QList<Portal*>&  getPortales() const;
 
     void aplicarAtaqueJugador();
 
 private:
-
     // ── Entidades ────────────────────────────────────────────
     Jugador*         jugador;
     QList<Enemigo*>  enemigos;
@@ -53,14 +43,19 @@ private:
     // ── Control de tiempo ────────────────────────────────────
     float    tiempoNivel2;
     float    tiempoSpawn;
+    float    tiempoSpawnVoladoras;
+    float    frecuenciaSpawnVoladoras;
+    float    tiempoFluctuacionPortales;
+    float    tiempoProyectil;
     uint8_t  nivelActivo;
     bool     pausado;
-    float tiempoProyectil;  // contador para spawn de proyectiles
+    int      targetPortales;
+    bool     creciendoPortales;
+    int      totalVariantesSpawneadas;
 
     // ── Lógica por nivel ─────────────────────────────────────
     void actualizarNivel1(float dt);
     void actualizarNivel2(float dt);
-
 
     // ── Colisiones ───────────────────────────────────────────
     void verificarColisiones();
@@ -73,11 +68,10 @@ private:
     void actualizarGameState();
     void verificarCondicionFin();
 
-    // ── Spawn de enemigos ────────────────────────────────────
-    void spawnClon();
-    void spawnProyectil();
-
-
+    // ── Spawn y gestión de enemigos ──────────────────────────
+    void spawnVariante();
+    void spawnVoladora();
+    void gestionarPortalesEntorno(float dt);
 };
 
 #endif

@@ -8,6 +8,7 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QSet>
 #include <QList>
 #include <QMediaPlayer>
@@ -30,6 +31,7 @@ public:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
 private slots:
     void onUpdate();
@@ -51,11 +53,12 @@ private:
     GameEngine*            engine;
 
     // ── Sprites ──────────────────────────────────────────────
-    QGraphicsPixmapItem*   spriteJugador;
-    QGraphicsPixmapItem*   spriteLevy;
-    QGraphicsPixmapItem*   spritePortal;
-    QGraphicsPixmapItem*   itemFondo;
-    QList<QGraphicsPixmapItem*> spritesClones;
+    QGraphicsPixmapItem*        spriteJugador;
+    QGraphicsPixmapItem*        spriteLevy;
+    QGraphicsPixmapItem*        spritePortal;
+    QGraphicsPixmapItem*        itemFondo;
+    QList<QGraphicsPixmapItem*> spritesVariantes;
+    QList<QGraphicsPixmapItem*> spritesPortalesNivel2;
 
     // ── Pixmaps jugador ───────────────────────────────────────
     QPixmap                pixJugadorNormal;
@@ -73,18 +76,36 @@ private:
     // ── Pixmaps Levy ──────────────────────────────────────────
     QPixmap                pixLevyNormal;
     QPixmap                pixLevyNormalIzq;
+    QPixmap                pixLevyWalk;
+    QPixmap                pixLevyWalkIzq;
     QPixmap                pixLevyGolpe;
     QPixmap                pixLevyGolpeIzq;
     bool                   levyGolpeando;
     int                    contadorLevyGolpe;
 
+    // ── Pixmaps Variantes Nivel 2 ────────────────────────────
+    QPixmap                pixVarianteBase;
+    QPixmap                pixVarianteWalk;
+    QPixmap                pixVarianteWalkIzq;
+    QPixmap                pixVarianteAttack;
+    QPixmap                pixVarianteAttackIzq;
+
+    // Sprites VariantePortal
+    QPixmap pixVariantePortalBase;
+    QPixmap pixVariantePortalWalk;
+    QPixmap pixVariantePortalWalkIzq;
+    QPixmap pixVariantePortalAttack;
+    QPixmap pixVariantePortalAttackIzq;
+
     // ── HUD ──────────────────────────────────────────────────
-    QGraphicsRectItem*     barraVidaJugador;
-    QGraphicsRectItem*     barraVidaLevy;
-    QGraphicsRectItem*     fondoVidaLevy;
-    QGraphicsTextItem*     labelLevy;
-    QGraphicsTextItem*     textoPuntos;
-    QGraphicsTextItem*     textoTiempo;
+    QGraphicsRectItem*         barraVidaJugador;
+    QGraphicsRectItem*         barraVidaLevy;
+    QGraphicsRectItem*         fondoVidaLevy;
+    QGraphicsTextItem*         labelLevy;
+    QGraphicsTextItem*         textoPuntos;
+    QGraphicsTextItem*         textoTiempo;
+    QList<QGraphicsRectItem*>  barrasVidaEstaticas;
+    QList<QGraphicsTextItem*>  etiquetasVariantes;
 
     // ── Pantalla de fin ───────────────────────────────────────
     QGraphicsTextItem*     textoFinJuego;
@@ -93,13 +114,13 @@ private:
     QGraphicsTextItem*     textoSalir;
 
     // ── Menú ──────────────────────────────────────────────────
-    QGraphicsRectItem*     fondoMenu;
-    QGraphicsTextItem*     textoTitulo;
-    QGraphicsTextItem*     textoSubtitulo;
-    QGraphicsTextItem*     textoFacil;
-    QGraphicsTextItem*     textoNormal;
-    QGraphicsTextItem*     textoDificil;
+    QList<QGraphicsItem*>  itemsMenu;
+    QGraphicsRectItem*     btnPausaFondo;
+    QGraphicsTextItem*     btnPausaTexto;
     bool                   enMenu;
+    bool                   juegoPausado;
+    bool                   enSubmenuDesdePausa;
+    int                    nivelInicioActual;
 
     // ── Audio ─────────────────────────────────────────────────
     QMediaPlayer*          musicaFondo;
@@ -119,10 +140,15 @@ private:
     void procesarInput();
     void mostrarPantallaFin(bool victoria);
     void reiniciarJuego();
-    void mostrarMenu();
-    void ocultarMenu();
     void cambiarFondo(int nivel);
-    void cambiarMusica(int nivel);
+    void cambiarMusica(int estadoMusica);
+    void crearBotonPausa();
+    void limpiarMenusUI();
+    void alternarPausa();
+    void dibujarMenuPrincipal();
+    void dibujarMenuPausa();
+    void dibujarMenuDificultad(bool desdePausa);
+    void iniciarJuego(int nivel);
 };
 
 #endif // MAINWINDOW_H

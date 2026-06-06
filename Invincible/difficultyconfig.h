@@ -12,10 +12,10 @@ public:
     float amplitudMAS;
     float omegaMAS;
 
-    // ── Física F3: Aceleración de Clones (Nivel 2) ───────────
-    float velClonBase;
-    float aceleracionClon;
-    float velMaxClon;
+    // ── Física F3: Aceleración de Variantes (Nivel 2) ───────────
+    float velVarianteBase;
+    float aceleracionVariante;
+    float velMaxVariante;
 
     // ── Física F5: Órbita de portales (Nivel 2) ──────────────
     float radioPortalNivel2;

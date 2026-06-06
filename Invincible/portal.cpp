@@ -36,6 +36,8 @@ Portal::Portal(float cx, float cy, float radioOrbital,
     , fase(fase)
     , esPuntoSpawn(true)
 {
+    setPixmap(QPixmap(":/sprites/Sprites/sprites/Portal.png")
+                  .scaled(40, 40, Qt::KeepAspectRatio, Qt::SmoothTransformation));
 }
 
 // ── Destructor ───────────────────────────────────────────────────
@@ -75,12 +77,17 @@ void Portal::updateConPhysics(float dt, const PhysicsEngine& physics)
         if (y > 450.0f) y = 450.0f;
 
     } else {
-        // F5 — Orbital
-        QPointF nuevaPos = physics.orbital(
-            cx, cy, radioOrbital, omegaOrbital, fase, tiempoVida);
+        // Orbital Elíptica (Nivel 2)
+        // Calculamos la base circular
+        QPointF nuevaPos = physics.orbital(cx, cy, radioOrbital, omegaOrbital, fase, tiempoVida);
         x = static_cast<float>(nuevaPos.x());
-        y = static_cast<float>(nuevaPos.y());
+
+        // Aplastamos el eje Y para convertir el círculo en una elipse adaptada a la pantalla
+        float dy = static_cast<float>(nuevaPos.y()) - cy;
+        y = cy + (dy * 0.7f); // 0.7f reduce la altura de la órbita
     }
+
+    setPosicion(x, y);
 }
 
 // ── jugadorTocaBorde ─────────────────────────────────────────────

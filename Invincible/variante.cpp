@@ -2,7 +2,6 @@
 #include "jugador.h"
 #include <cmath>
 
-// ── Constructor ─────────────────────────────────────────────────
 Variante::Variante(float x, float y, float vida, float masa,
                    float danio, uint16_t puntos)
     : Enemigo(x, y, vida, masa, danio, puntos)
@@ -11,103 +10,65 @@ Variante::Variante(float x, float y, float vida, float masa,
     , tiempoEnEstado(0.0f)
 {}
 
-// ── update sin jugador ───────────────────────────────────────────
 void Variante::update(float dt)
 {
-    (void)dt;
+    moverse(dt);
 }
 
-// ── update con jugador — orquesta percepción y acción ────────────
 void Variante::update(float dt, const Jugador& jugador)
 {
-    if (!activo) return;
-
-    float xJ = jugador.getX();
-    float yJ = jugador.getY();
-
-    float dx   = xJ - x;
-    float dy   = yJ - y;
-    float dist = std::sqrt(dx * dx + dy * dy);
+    if (!isVisible()) return;
 
     tiempoEnEstado += dt;
 
-    // ── Razonamiento — decide estado según distancia ──────────
-    if (dist < 120.0f) {
-        // Cerca del jugador — atacar
-        if (estado != Estado::ATACAR) {
-            estado         = Estado::ATACAR;
-            tiempoEnEstado = 0.0f;
-        }
+    // Anti-bloqueo: si ataca más de 3s sin éxito vuelve a rodear
+    if (estado == Estado::ATACAR && tiempoEnEstado > 3.0f) {
+        setEstado(Estado::RODEAR);
+    }
+
+    float xObjetivo, yObjetivo;
+
+    if (estado == Estado::RODEAR) {
+        float radioAsedio  = 180.0f;
+        float giroDinamico = angulo + (tiempoEnEstado * 0.5f);
+        xObjetivo = jugador.getX() + std::cos(giroDinamico) * radioAsedio;
+        yObjetivo = jugador.getY() + std::sin(giroDinamico) * radioAsedio;
     } else {
-        // Lejos — rodear
-        if (estado != Estado::RODEAR) {
-            estado         = Estado::RODEAR;
-            tiempoEnEstado = 0.0f;
-        }
+        xObjetivo = jugador.getX();
+        yObjetivo = jugador.getY();
     }
 
-    // ── Acción ────────────────────────────────────────────────
-    switch (estado) {
-    case Estado::RODEAR:
-        rodear(dt, xJ, yJ);
-        break;
-    case Estado::ATACAR:
-        atacar(dt, xJ, yJ);
-        break;
-    }
-}
-
-// ── moverse ──────────────────────────────────────────────────────
-void Variante::moverse(float dt)
-{
-    (void)dt;
-}
-
-// ── rodear — movimiento circular alrededor del jugador ───────────
-void Variante::rodear(float dt, float xJ, float yJ)
-{
-    angulo += 1.2f * dt;
-
-    float radio    = 150.0f;
-    float destinoX = xJ + std::cos(angulo) * radio;
-    float destinoY = yJ + std::sin(angulo) * radio;
-
-    float dx   = destinoX - x;
-    float dy   = destinoY - y;
+    float dx   = xObjetivo - x;
+    float dy   = yObjetivo - y;
     float dist = std::sqrt(dx * dx + dy * dy);
-
-    float vel = 90.0f;
-
-    if (dist > 2.0f) {
-        x += (dx / dist) * vel * dt;
-        y += (dy / dist) * vel * dt;
-    }
-
-    // Límites de pantalla
-    x = std::max(0.0f, std::min(x, 740.0f));
-    y = std::max(0.0f, std::min(y, 480.0f));
-}
-
-// ── atacar — se lanza directo hacia el jugador ───────────────────
-void Variante::atacar(float dt, float xJ, float yJ)
-{
-    float dx   = xJ - x;
-    float dy   = yJ - y;
-    float dist = std::sqrt(dx * dx + dy * dy);
-
-    float vel = 160.0f;
 
     if (dist > 5.0f) {
-        x += (dx / dist) * vel * dt;
-        y += (dy / dist) * vel * dt;
+        float velActual = (estado == Estado::ATACAR) ? 200.0f : 150.0f;
+        velX = (dx / dist) * velActual * 1.5f;
+        velY = (dy / dist) * velActual * 1.5f;
+    } else {
+        velX = 0.0f;
+        velY = 0.0f;
     }
 
-    // Límites de pantalla
-    x = std::max(0.0f, std::min(x, 740.0f));
-    y = std::max(0.0f, std::min(y, 480.0f));
+    moverse(dt);
 }
 
-// ── Getters y setters ────────────────────────────────────────────
-void Variante::setEstado(Estado nuevoEstado) { estado = nuevoEstado; }
+void Variante::moverse(float dt)
+{
+    x += velX * dt;
+    y += velY * dt;
+    limitarBordes(800.0f, 600.0f, 85.0f, 85.0f);
+    setPosicion(x, y);
+}
+
+void Variante::setEstado(Estado nuevoEstado)
+{
+    if (estado != nuevoEstado) {
+        estado        = nuevoEstado;
+        tiempoEnEstado = 0.0f;
+    }
+}
+
 Variante::Estado Variante::getEstado() const { return estado; }
 void Variante::setAngulo(float nuevoAngulo)  { angulo = nuevoAngulo; }
