@@ -7,7 +7,9 @@
 #include <QPainter>
 #include <QTransform>
 #include <QCoreApplication>
+#include <QApplication>
 #include <cmath>
+#include "jugador.h"
 #include "varianteportal.h"
 
 // ── Constructor ─────────────────────────────────────────────────
@@ -32,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent)
     , textoFinJuego(nullptr)
     , textoReiniciar(nullptr)
     , textoPuntajeFinal(nullptr)
+    , textoSalir(nullptr)
     , fondoMenu(nullptr)
     , textoTitulo(nullptr)
     , textoSubtitulo(nullptr)
@@ -49,6 +52,8 @@ MainWindow::MainWindow(QWidget *parent)
     , efectoGolpe(nullptr)
     , efectoVictoria(nullptr)
     , efectoDerrota(nullptr)
+    , contadorAnimacion(0)
+    , jugadorMoviendose(false)
 {
     ui->setupUi(this);
 
@@ -174,11 +179,19 @@ void MainWindow::inicializarEscena()
         QTransform().scale(-1, 1));
 
     pixJugadorGolpe = QPixmap(":/sprites/assets/sprites/invinsibleGolpeSinFondo.png");
-    pixJugadorGolpe = pixJugadorGolpe.scaled(80, 80,
+    pixJugadorGolpe = pixJugadorGolpe.scaled(60, 80,
                                              Qt::KeepAspectRatio,
                                              Qt::SmoothTransformation);
 
     pixJugadorGolpeIzq = pixJugadorGolpe.transformed(
+        QTransform().scale(-1, 1));
+
+    pixJugadorWalk = QPixmap(":/sprites/assets/sprites/invincible_walk1.png");
+    pixJugadorWalk = pixJugadorWalk.scaled(60, 80,
+                                           Qt::KeepAspectRatio,
+                                           Qt::SmoothTransformation);
+
+    pixJugadorWalkIzq = pixJugadorWalk.transformed(
         QTransform().scale(-1, 1));
 
     spriteJugador->setPixmap(pixJugadorNormal);
@@ -304,31 +317,32 @@ void MainWindow::procesarInput()
     if (teclasPresionadas.contains(Qt::Key_Left) ||
         teclasPresionadas.contains(Qt::Key_A)) {
         jugador->moverX(-1.0f);
-        moviendoX      = true;
-        mirandoDerecha = false;
-        if (!mostrandoGolpe)
-            spriteJugador->setPixmap(pixJugadorNormalIzq);
+        moviendoX         = true;
+        mirandoDerecha    = false;
+        jugadorMoviendose = true;
     } else if (teclasPresionadas.contains(Qt::Key_Right) ||
                teclasPresionadas.contains(Qt::Key_D)) {
         jugador->moverX(1.0f);
-        moviendoX      = true;
-        mirandoDerecha = true;
-        if (!mostrandoGolpe)
-            spriteJugador->setPixmap(pixJugadorNormal);
+        moviendoX         = true;
+        mirandoDerecha    = true;
+        jugadorMoviendose = true;
     }
 
     if (teclasPresionadas.contains(Qt::Key_Up) ||
         teclasPresionadas.contains(Qt::Key_W)) {
         jugador->moverY(-1.0f);
-        moviendoY = true;
+        moviendoY         = true;
+        jugadorMoviendose = true;
     } else if (teclasPresionadas.contains(Qt::Key_Down) ||
                teclasPresionadas.contains(Qt::Key_S)) {
         jugador->moverY(1.0f);
-        moviendoY = true;
+        moviendoY         = true;
+        jugadorMoviendose = true;
     }
 
     if (!moviendoX && !moviendoY) {
         jugador->detener();
+        jugadorMoviendose = false;
     }
 
     if (teclasPresionadas.contains(Qt::Key_Space)) {
@@ -385,8 +399,9 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 
             efectoGolpe->play();
 
-            mostrandoGolpe = true;
-            contadorGolpe  = 0;
+            mostrandoGolpe    = true;
+            contadorGolpe     = 0;
+            jugadorMoviendose = false;
 
             if (mirandoDerecha) {
                 spriteJugador->setPixmap(pixJugadorGolpe);
@@ -397,7 +412,11 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     }
 
     if (event->key() == Qt::Key_Escape) {
-        if (timerLoop->isActive()) {
+        GameState::EstadoPartida est = engine->getEstado().getEstado();
+        if (est == GameState::EstadoPartida::VICTORIA ||
+            est == GameState::EstadoPartida::DERROTA) {
+            QApplication::quit();
+        } else if (timerLoop->isActive()) {
             engine->pausar();
             musicaFondo->pause();
         } else {
@@ -445,6 +464,24 @@ void MainWindow::sincronizarSprites()
         }
     }
 
+    // ── Animación de caminata ─────────────────────────────────
+    if (jugadorMoviendose && !mostrandoGolpe) {
+        contadorAnimacion++;
+        if (contadorAnimacion < 10) {
+            spriteJugador->setPixmap(
+                mirandoDerecha ? pixJugadorNormal : pixJugadorNormalIzq);
+        } else if (contadorAnimacion < 20) {
+            spriteJugador->setPixmap(
+                mirandoDerecha ? pixJugadorWalk : pixJugadorWalkIzq);
+        } else {
+            contadorAnimacion = 0;
+        }
+    } else if (!jugadorMoviendose && !mostrandoGolpe) {
+        contadorAnimacion = 0;
+        spriteJugador->setPixmap(
+            mirandoDerecha ? pixJugadorNormal : pixJugadorNormalIzq);
+    }
+
     // ── Jugador ───────────────────────────────────────────────
     Jugador* jug = engine->getJugador();
     if (jug && spriteJugador) {
@@ -486,7 +523,6 @@ void MainWindow::sincronizarSprites()
                     }
                 }
 
-                // Contador para volver al sprite normal
                 if (levyGolpeando) {
                     contadorLevyGolpe++;
                     if (contadorLevyGolpe >= 12) {
@@ -648,6 +684,12 @@ void MainWindow::mostrarPantallaFin(bool victoria)
     textoReiniciar->setFont(QFont("Arial", 16));
     textoReiniciar->setPos(230, 340);
     escena->addItem(textoReiniciar);
+
+    textoSalir = new QGraphicsTextItem("Presiona ESC para salir");
+    textoSalir->setDefaultTextColor(QColor(220, 50, 50));
+    textoSalir->setFont(QFont("Arial", 16));
+    textoSalir->setPos(245, 375);
+    escena->addItem(textoSalir);
 }
 
 // ── reiniciarJuego ───────────────────────────────────────────────
@@ -671,6 +713,12 @@ void MainWindow::reiniciarJuego()
         textoPuntajeFinal = nullptr;
     }
 
+    if (textoSalir) {
+        escena->removeItem(textoSalir);
+        delete textoSalir;
+        textoSalir = nullptr;
+    }
+
     for (QGraphicsPixmapItem* s : spritesClones) {
         escena->removeItem(s);
         delete s;
@@ -682,6 +730,8 @@ void MainWindow::reiniciarJuego()
     contadorGolpe     = 0;
     levyGolpeando     = false;
     contadorLevyGolpe = 0;
+    contadorAnimacion = 0;
+    jugadorMoviendose = false;
 
     cambiarFondo(1);
     mostrarMenu();

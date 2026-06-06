@@ -43,7 +43,7 @@ void Entidad::setPosicion(float nuevoX, float nuevoY)
     x = nuevoX;
     y = nuevoY;
 
-    // Cada vez que cambias (x, y), actualizas la vista en pantalla
+    //cada que se cambia  (x, y), actualiza okla vista en pantalla
     setPos(x, y);
 }
 

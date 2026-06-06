@@ -62,9 +62,13 @@ private:
     QPixmap                pixJugadorNormalIzq;
     QPixmap                pixJugadorGolpe;
     QPixmap                pixJugadorGolpeIzq;
+    QPixmap                pixJugadorWalk;
+    QPixmap                pixJugadorWalkIzq;
     bool                   mostrandoGolpe;
     int                    contadorGolpe;
     bool                   mirandoDerecha;
+    int                    contadorAnimacion;
+    bool                   jugadorMoviendose;
 
     // ── Pixmaps Levy ──────────────────────────────────────────
     QPixmap                pixLevyNormal;
@@ -86,6 +90,7 @@ private:
     QGraphicsTextItem*     textoFinJuego;
     QGraphicsTextItem*     textoReiniciar;
     QGraphicsTextItem*     textoPuntajeFinal;
+    QGraphicsTextItem*     textoSalir;
 
     // ── Menú ──────────────────────────────────────────────────
     QGraphicsRectItem*     fondoMenu;

@@ -16,5 +16,6 @@
         <file>assets/sprites/invinsibleGolpeSinFondo.png</file>
         <file>assets/sprites/Viltrumincible_85x85.png</file>
         <file>assets/sprites/levi_golpe.png</file>
+        <file>assets/sprites/invincible_walk1.png</file>
     </qresource>
 </RCC>
