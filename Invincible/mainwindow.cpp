@@ -2,13 +2,14 @@
 #include "ui_mainwindow.h"
 #include <QGraphicsRectItem>
 #include <QGraphicsTextItem>
-#include <QMouseEvent>
 #include <QBrush>
 #include <QFont>
 #include <QPainter>
 #include <QTransform>
 #include <QCoreApplication>
+#include <QApplication>
 #include <cmath>
+#include "jugador.h"
 #include "varianteportal.h"
 #include "variante.h"
 
@@ -34,9 +35,13 @@ MainWindow::MainWindow(QWidget *parent)
     , textoFinJuego(nullptr)
     , textoReiniciar(nullptr)
     , textoPuntajeFinal(nullptr)
+    , textoSalir(nullptr)
     , btnPausaFondo(nullptr)
     , btnPausaTexto(nullptr)
     , enMenu(true)
+    , juegoPausado(false)
+    , enSubmenuDesdePausa(false)
+    , nivelInicioActual(1)
     , mostrandoGolpe(false)
     , contadorGolpe(0)
     , mirandoDerecha(true)
@@ -47,10 +52,12 @@ MainWindow::MainWindow(QWidget *parent)
     , efectoGolpe(nullptr)
     , efectoVictoria(nullptr)
     , efectoDerrota(nullptr)
+    , contadorAnimacion(0)
+    , jugadorMoviendose(false)
 {
     ui->setupUi(this);
 
-    setWindowTitle("Invincible Kickboxing");
+    setWindowTitle("Invincible Kickboxer");
     setFixedSize(800, 600);
 
     engine = new GameEngine(config);
@@ -65,6 +72,8 @@ MainWindow::MainWindow(QWidget *parent)
     reloj.start();
 
     // ── Inicializar audio ─────────────────────────────────────
+    QString rutaBase = QCoreApplication::applicationDirPath() + "/soundtrack/";
+
     musicaFondo = new QMediaPlayer(this);
     audioFondo  = new QAudioOutput(this);
     musicaFondo->setAudioOutput(audioFondo);
@@ -72,24 +81,22 @@ MainWindow::MainWindow(QWidget *parent)
     musicaFondo->setLoops(QMediaPlayer::Infinite);
 
     efectoGolpe = new QSoundEffect(this);
-    efectoGolpe->setSource(QUrl("qrc:/sprites/soundtrack/golpe.wav"));
+    efectoGolpe->setSource(QUrl::fromLocalFile(rutaBase + "golpe.wav"));
     efectoGolpe->setVolume(0.8f);
 
     efectoVictoria = new QSoundEffect(this);
-    efectoVictoria->setSource(QUrl("qrc:/sprites/soundtrack/win.wav")); //
+    efectoVictoria->setSource(QUrl::fromLocalFile(rutaBase + "win.wav"));
     efectoVictoria->setVolume(1.0f);
 
     efectoDerrota = new QSoundEffect(this);
-    efectoDerrota->setSource(QUrl("qrc:/sprites/soundtrack/lose.wav")); //
+    efectoDerrota->setSource(QUrl::fromLocalFile(rutaBase + "lose.wav"));
     efectoDerrota->setVolume(1.0f);
 
-    nivelInicioActual = 1;
-    juegoPausado = false;
-    enSubmenuDesdePausa = false;
     dibujarMenuPrincipal();
     cambiarMusica(0);
     setFocus();
 }
+
 // ── Destructor ───────────────────────────────────────────────────
 MainWindow::~MainWindow()
 {
@@ -97,34 +104,54 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+// ── iniciarJuego ─────────────────────────────────────────────────
+void MainWindow::iniciarJuego(int nivel)
+{
+    limpiarMenusUI();
+    enMenu = false;
+    delete engine;
+    engine = new GameEngine(config);
+    engine->iniciarNivel(nivel);
+    cambiarFondo(nivel);
+    cambiarMusica(nivel);
+    sincronizarSprites();
+    reloj.restart();
+    timerLoop->start(16);
+    setFocus();
+}
+
 // ── cambiarMusica ────────────────────────────────────────────────
 void MainWindow::cambiarMusica(int estadoMusica)
 {
     musicaFondo->stop();
-
-    QString ruta = "qrc:/sprites/soundtrack/";
+    QString rutaBase = QCoreApplication::applicationDirPath() + "/soundtrack/";
 
     switch (estadoMusica) {
-    case 0: // Menú de Inicio y Pausa
-        musicaFondo->setSource(QUrl(ruta + "win.wav.wav"));
+    case 0: // Menú
+        musicaFondo->setSource(QUrl::fromLocalFile(
+            rutaBase + "Invincible Theme by John Paesano [gF73gPQQsR4].wav"));
         break;
     case 1: // Nivel 1
-        musicaFondo->setSource(QUrl(ruta + "levy.wav"));
+        musicaFondo->setSource(QUrl::fromLocalFile(
+            rutaBase + "Invincible Theme by John Paesano [gF73gPQQsR4].wav"));
         break;
     case 2: // Nivel 2
-        musicaFondo->setSource(QUrl(ruta + "Tom_tom.wav"));
+        musicaFondo->setSource(QUrl::fromLocalFile(
+            rutaBase + "Tom_tom.wav"));
         break;
     case 3: // Victoria Nivel 1
-        musicaFondo->setSource(QUrl(ruta + "win.wav"));
-        break;
     case 4: // Victoria Nivel 2
-        musicaFondo->setSource(QUrl(ruta + "win2.wav"));
+        musicaFondo->setSource(QUrl::fromLocalFile(
+            rutaBase + "win.wav"));
         break;
     case 5: // Derrota Nivel 1
-        musicaFondo->setSource(QUrl(ruta + "lose.wav"));
-        break;
     case 6: // Derrota Nivel 2
-        musicaFondo->setSource(QUrl(ruta + "lose.wav"));
+        musicaFondo->setSource(QUrl::fromLocalFile(
+            rutaBase + "lose.wav"));
+        break;
+    default:
+        musicaFondo->setSource(QUrl::fromLocalFile(
+            rutaBase + "Invincible Theme by John Paesano [gF73gPQQsR4].wav"));
         break;
     }
 
@@ -178,18 +205,20 @@ void MainWindow::inicializarEscena()
 
     pixJugadorNormal = QPixmap(":/sprites/assets/sprites/Invincible.png");
     pixJugadorNormal = pixJugadorNormal.scaled(60, 80,
-                                               Qt::KeepAspectRatio,
-                                               Qt::SmoothTransformation);
-
+                                               Qt::KeepAspectRatio, Qt::SmoothTransformation);
     pixJugadorNormalIzq = pixJugadorNormal.transformed(
         QTransform().scale(-1, 1));
 
     pixJugadorGolpe = QPixmap(":/sprites/assets/sprites/invinsibleGolpeSinFondo.png");
-    pixJugadorGolpe = pixJugadorGolpe.scaled(80, 80,
-                                             Qt::KeepAspectRatio,
-                                             Qt::SmoothTransformation);
-
+    pixJugadorGolpe = pixJugadorGolpe.scaled(60, 80,
+                                             Qt::KeepAspectRatio, Qt::SmoothTransformation);
     pixJugadorGolpeIzq = pixJugadorGolpe.transformed(
+        QTransform().scale(-1, 1));
+
+    pixJugadorWalk = QPixmap(":/sprites/assets/sprites/invincible_walk1.png");
+    pixJugadorWalk = pixJugadorWalk.scaled(60, 80,
+                                           Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    pixJugadorWalkIzq = pixJugadorWalk.transformed(
         QTransform().scale(-1, 1));
 
     spriteJugador->setPixmap(pixJugadorNormal);
@@ -202,17 +231,13 @@ void MainWindow::inicializarEscena()
 
     pixLevyNormal = QPixmap(":/sprites/assets/sprites/Amstrongr.png");
     pixLevyNormal = pixLevyNormal.scaled(70, 90,
-                                         Qt::KeepAspectRatio,
-                                         Qt::SmoothTransformation);
-
+                                         Qt::KeepAspectRatio, Qt::SmoothTransformation);
     pixLevyNormalIzq = pixLevyNormal.transformed(
         QTransform().scale(-1, 1));
 
     pixLevyGolpe = QPixmap(":/sprites/assets/sprites/levi_golpe.png");
     pixLevyGolpe = pixLevyGolpe.scaled(70, 90,
-                                       Qt::KeepAspectRatio,
-                                       Qt::SmoothTransformation);
-
+                                       Qt::KeepAspectRatio, Qt::SmoothTransformation);
     pixLevyGolpeIzq = pixLevyGolpe.transformed(
         QTransform().scale(-1, 1));
 
@@ -221,12 +246,11 @@ void MainWindow::inicializarEscena()
     spriteLevy->setZValue(1);
     escena->addItem(spriteLevy);
 
-    // ── Sprite Portal ─────────────────────────────────────────
+    // ── Sprite Portal (solo Nivel 1) ──────────────────────────
     spritePortal = new QGraphicsPixmapItem();
     QPixmap pixPortal(":/sprites/assets/sprites/Portal.png");
-    pixPortal = pixPortal.scaled(160, 160,
-                                 Qt::KeepAspectRatio,
-                                 Qt::SmoothTransformation);
+    pixPortal = pixPortal.scaled(80, 80,
+                                 Qt::KeepAspectRatio, Qt::SmoothTransformation);
     spritePortal->setPixmap(pixPortal);
     spritePortal->setPos(500, 200);
     spritePortal->setZValue(1);
@@ -279,6 +303,7 @@ void MainWindow::inicializarHUD()
     textoTiempo->setFont(QFont("Arial", 11, QFont::Bold));
     textoTiempo->setPos(340, 530);
     escena->addItem(textoTiempo);
+
     crearBotonPausa();
 }
 
@@ -287,7 +312,6 @@ void MainWindow::onUpdate()
 {
     float dt = reloj.elapsed() / 1000.0f;
     reloj.restart();
-
     if (dt > 0.05f) dt = 0.05f;
 
     procesarInput();
@@ -316,31 +340,32 @@ void MainWindow::procesarInput()
     if (teclasPresionadas.contains(Qt::Key_Left) ||
         teclasPresionadas.contains(Qt::Key_A)) {
         jugador->moverX(-1.0f);
-        moviendoX      = true;
-        mirandoDerecha = false;
-        if (!mostrandoGolpe)
-            spriteJugador->setPixmap(pixJugadorNormalIzq);
+        moviendoX         = true;
+        mirandoDerecha    = false;
+        jugadorMoviendose = true;
     } else if (teclasPresionadas.contains(Qt::Key_Right) ||
                teclasPresionadas.contains(Qt::Key_D)) {
         jugador->moverX(1.0f);
-        moviendoX      = true;
-        mirandoDerecha = true;
-        if (!mostrandoGolpe)
-            spriteJugador->setPixmap(pixJugadorNormal);
+        moviendoX         = true;
+        mirandoDerecha    = true;
+        jugadorMoviendose = true;
     }
 
     if (teclasPresionadas.contains(Qt::Key_Up) ||
         teclasPresionadas.contains(Qt::Key_W)) {
         jugador->moverY(-1.0f);
-        moviendoY = true;
+        moviendoY         = true;
+        jugadorMoviendose = true;
     } else if (teclasPresionadas.contains(Qt::Key_Down) ||
                teclasPresionadas.contains(Qt::Key_S)) {
         jugador->moverY(1.0f);
-        moviendoY = true;
+        moviendoY         = true;
+        jugadorMoviendose = true;
     }
 
     if (!moviendoX && !moviendoY) {
         jugador->detener();
+        jugadorMoviendose = false;
     }
 
     if (teclasPresionadas.contains(Qt::Key_Space)) {
@@ -351,58 +376,20 @@ void MainWindow::procesarInput()
 // ── keyPressEvent ────────────────────────────────────────────────
 void MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    if (enMenu) {
-        if (event->key() == Qt::Key_1) {
-            config = DifficultyConfig::facil();
-            limpiarMenusUI();
-            enMenu = false;
-            delete engine;
-            engine = new GameEngine(config);
-            engine->iniciarNivel(nivelInicioActual, escena);
-            cambiarMusica(nivelInicioActual);
-            reloj.restart();
-            timerLoop->start(16);
-            setFocus();
-        } else if (event->key() == Qt::Key_2) {
-            config = DifficultyConfig::normal();
-            limpiarMenusUI();
-            enMenu = false;
-            delete engine;
-            engine = new GameEngine(config);
-            engine->iniciarNivel(nivelInicioActual, escena);
-            cambiarMusica(nivelInicioActual);
-            reloj.restart();
-            timerLoop->start(16);
-            setFocus();
-        } else if (event->key() == Qt::Key_3) {
-            config = DifficultyConfig::dificil();
-            limpiarMenusUI();
-            enMenu = false;
-            delete engine;
-            engine = new GameEngine(config);
-            engine->iniciarNivel(nivelInicioActual, escena);
-            cambiarMusica(nivelInicioActual);
-            reloj.restart();
-            timerLoop->start(16);
-            setFocus();
-        }
-        return;
-    }
+    if (enMenu) return;
 
     teclasPresionadas.insert(event->key());
 
-    if (event->key() == Qt::Key_M) {
+    if (event->key() == Qt::Key_Z) {
         Jugador* jugador = engine->getJugador();
         if (jugador && jugador->isActivo()) {
             jugador->atacar();
             engine->aplicarAtaqueJugador();
             jugador->resetDanio();
-
             efectoGolpe->play();
-
-            mostrandoGolpe = true;
-            contadorGolpe  = 0;
-
+            mostrandoGolpe    = true;
+            contadorGolpe     = 0;
+            jugadorMoviendose = false;
             if (mirandoDerecha) {
                 spriteJugador->setPixmap(pixJugadorGolpe);
             } else {
@@ -412,13 +399,16 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
     }
 
     if (event->key() == Qt::Key_P) {
-        if (!enMenu) alternarPausa();
-        if (timerLoop->isActive()) {
-            engine->pausar();
-            musicaFondo->pause();
+        alternarPausa();
+    }
+
+    if (event->key() == Qt::Key_Escape) {
+        GameState::EstadoPartida est = engine->getEstado().getEstado();
+        if (est == GameState::EstadoPartida::VICTORIA ||
+            est == GameState::EstadoPartida::DERROTA) {
+            QApplication::quit();
         } else {
-            engine->reanudar();
-            musicaFondo->play();
+            alternarPausa();
         }
     }
 
@@ -450,118 +440,92 @@ void MainWindow::mousePressEvent(QMouseEvent *event)
     QPointF posEscena = vista->mapToScene(event->pos());
     QGraphicsItem* itemClickeado = escena->itemAt(posEscena, vista->transform());
 
-    // 1. Detección del bloque de pausa superior izquierdo
     if (itemClickeado == btnPausaFondo || itemClickeado == btnPausaTexto) {
         if (!enMenu) alternarPausa();
         return;
     }
 
-    // 2. Detección de opciones de texto en la pantalla
     QGraphicsTextItem* textoClickeado = dynamic_cast<QGraphicsTextItem*>(itemClickeado);
-    if (textoClickeado) {
-        QString texto = textoClickeado->toPlainText();
-
-        if (texto == "JUGAR") {
-            limpiarMenusUI();
-            enMenu = false;
-            delete engine;
-            engine = new GameEngine(config);
-            engine->iniciarNivel(nivelInicioActual, escena);
-            cambiarFondo(nivelInicioActual);
-            cambiarMusica(nivelInicioActual);
-            sincronizarSprites();
-            reloj.restart();
-            timerLoop->start(16);
-            setFocus();
-        }
-        else if (texto.startsWith("SELECCIONAR NIVEL")) {
-            nivelInicioActual = (nivelInicioActual == 1) ? 2 : 1;
-            dibujarMenuPrincipal(); // Redibuja para actualizar el texto
-        }
-        else if (texto == "SELECCIONAR DIFICULTAD") {
-            dibujarMenuDificultad(juegoPausado);
-        }
-        else if (texto == "REANUDAR") {
-            alternarPausa();
-        }
-        else if (texto.startsWith("IR AL NIVEL")) {
-            int nuevoNivel = (engine->getEstado().getNivel() == 1) ? 2 : 1;
-            alternarPausa(); // Esto reanuda los timers internos
-
-            // Destruimos la partida actual y forzamos el inicio en el nuevo nivel
-            delete engine;
-            engine = new GameEngine(config);
-            engine->iniciarNivel(nuevoNivel, escena);
-            cambiarFondo(nuevoNivel);
-            cambiarMusica(nuevoNivel);
-            sincronizarSprites();
-            setFocus();
-        }
-        else if (texto == "CONTINUAR AL NIVEL 2") {
-            limpiarMenusUI();
-            enMenu = false;
-            delete engine;
-            engine = new GameEngine(config);
-            engine->iniciarNivel(2, escena); // Inicia el nivel 2 forzosamente
-            cambiarFondo(2);
-            cambiarMusica(2);
-            sincronizarSprites();
-            reloj.restart();
-            timerLoop->start(16);
-            setFocus();
-        }
-        else if (texto == "REGRESAR AL MENU") {
-            limpiarMenusUI();
-            reiniciarJuego();
-        }
-        else if (texto == "REGRESAR") {
-            if (enSubmenuDesdePausa) dibujarMenuPausa();
-            else dibujarMenuPrincipal();
-        }
-        // ── Ajustes de Dificultad ──
-        else if (texto == "FACIL") {
-            config = DifficultyConfig::facil();
-            if (enSubmenuDesdePausa) dibujarMenuPausa(); else dibujarMenuPrincipal();
-        }
-        else if (texto == "NORMAL") {
-            config = DifficultyConfig::normal();
-            if (enSubmenuDesdePausa) dibujarMenuPausa(); else dibujarMenuPrincipal();
-        }
-        else if (texto == "DIFICIL") {
-            config = DifficultyConfig::dificil();
-            if (enSubmenuDesdePausa) dibujarMenuPausa(); else dibujarMenuPrincipal();
-        }
-    } else {
+    if (!textoClickeado) {
         QMainWindow::mousePressEvent(event);
+        return;
+    }
+
+    QString texto = textoClickeado->toPlainText();
+
+    if (texto == "JUGAR") {
+        iniciarJuego(nivelInicioActual);
+    } else if (texto.startsWith("SELECCIONAR NIVEL")) {
+        nivelInicioActual = (nivelInicioActual == 1) ? 2 : 1;
+        dibujarMenuPrincipal();
+    } else if (texto == "SELECCIONAR DIFICULTAD") {
+        dibujarMenuDificultad(juegoPausado);
+    } else if (texto == "REANUDAR") {
+        alternarPausa();
+    } else if (texto.startsWith("IR AL NIVEL")) {
+        int nuevoNivel = (engine->getEstado().getNivel() == 1) ? 2 : 1;
+        alternarPausa();
+        iniciarJuego(nuevoNivel);
+    } else if (texto == "CONTINUAR AL NIVEL 2") {
+        iniciarJuego(2);
+    } else if (texto == "REGRESAR AL MENU") {
+        reiniciarJuego();
+    } else if (texto == "REGRESAR") {
+        if (enSubmenuDesdePausa) dibujarMenuPausa();
+        else dibujarMenuPrincipal();
+    } else if (texto == "FACIL") {
+        config = DifficultyConfig::facil();
+        if (enSubmenuDesdePausa) dibujarMenuPausa(); else dibujarMenuPrincipal();
+    } else if (texto == "NORMAL") {
+        config = DifficultyConfig::normal();
+        if (enSubmenuDesdePausa) dibujarMenuPausa(); else dibujarMenuPrincipal();
+    } else if (texto == "DIFICIL") {
+        config = DifficultyConfig::dificil();
+        if (enSubmenuDesdePausa) dibujarMenuPausa(); else dibujarMenuPrincipal();
     }
 }
 
 // ── sincronizarSprites ───────────────────────────────────────────
 void MainWindow::sincronizarSprites()
 {
-    for (QGraphicsRectItem* barra : barrasVidaEstaticas) {
-        escena->removeItem(barra);
-        delete barra;
+    // ── Limpiar barras de vida variantes ──────────────────────
+    for (QGraphicsRectItem* b : barrasVidaEstaticas) {
+        escena->removeItem(b); delete b;
     }
     barrasVidaEstaticas.clear();
-    for (QGraphicsTextItem* etiqueta : etiquetasVariantes) {
-        escena->removeItem(etiqueta);
-        delete etiqueta;
+
+    for (QGraphicsTextItem* e : etiquetasVariantes) {
+        escena->removeItem(e); delete e;
     }
     etiquetasVariantes.clear();
 
-    // ── Efecto de golpe jugador ───────────────────────────────aaaa
+    // ── Efecto de golpe jugador ───────────────────────────────
     if (mostrandoGolpe) {
         contadorGolpe++;
         if (contadorGolpe >= 12) {
             mostrandoGolpe = false;
             contadorGolpe  = 0;
-            if (mirandoDerecha) {
-                spriteJugador->setPixmap(pixJugadorNormal);
-            } else {
-                spriteJugador->setPixmap(pixJugadorNormalIzq);
-            }
+            spriteJugador->setPixmap(
+                mirandoDerecha ? pixJugadorNormal : pixJugadorNormalIzq);
         }
+    }
+
+    // ── Animación de caminata ─────────────────────────────────
+    if (jugadorMoviendose && !mostrandoGolpe) {
+        contadorAnimacion++;
+        if (contadorAnimacion < 10) {
+            spriteJugador->setPixmap(
+                mirandoDerecha ? pixJugadorNormal : pixJugadorNormalIzq);
+        } else if (contadorAnimacion < 20) {
+            spriteJugador->setPixmap(
+                mirandoDerecha ? pixJugadorWalk : pixJugadorWalkIzq);
+        } else {
+            contadorAnimacion = 0;
+        }
+    } else if (!jugadorMoviendose && !mostrandoGolpe) {
+        contadorAnimacion = 0;
+        spriteJugador->setPixmap(
+            mirandoDerecha ? pixJugadorNormal : pixJugadorNormalIzq);
     }
 
     // ── Jugador ───────────────────────────────────────────────
@@ -574,14 +538,24 @@ void MainWindow::sincronizarSprites()
     }
 
     const QList<Enemigo*>& enemigos = engine->getEnemigos();
+    int nivel = engine->getEstado().getNivel();
 
-    if (engine->getEstado().getNivel() == 1) {
+    if (nivel == 1) {
+        // ── Nivel 1 ───────────────────────────────────────────
+
+        // Limpiar sprites variantes por si acaso
         for (QGraphicsPixmapItem* s : spritesVariantes) {
-            escena->removeItem(s);
-            delete s;
+            escena->removeItem(s); delete s;
         }
         spritesVariantes.clear();
-        // ── Levy Nivel 1 ──────────────────────────────────────
+
+        // Limpiar portales nivel 2 por si acaso
+        for (QGraphicsPixmapItem* s : spritesPortalesNivel2) {
+            escena->removeItem(s); delete s;
+        }
+        spritesPortalesNivel2.clear();
+
+        // Levy
         if (!enemigos.isEmpty() && spriteLevy) {
             Enemigo* levy = enemigos[0];
             spriteLevy->setPos(levy->getX(), levy->getY());
@@ -591,136 +565,140 @@ void MainWindow::sincronizarSprites()
                 float dx   = levy->getX() - jug->getX();
                 float dy   = levy->getY() - jug->getY();
                 float dist = std::sqrt(dx * dx + dy * dy);
-
                 bool levyMiraDerecha = jug->getX() > levy->getX();
 
                 if (dist < 80.0f && !levyGolpeando) {
                     levyGolpeando     = true;
                     contadorLevyGolpe = 0;
-                    if (levyMiraDerecha) {
-                        spriteLevy->setPixmap(pixLevyGolpe);
-                    } else {
-                        spriteLevy->setPixmap(pixLevyGolpeIzq);
-                    }
+                    spriteLevy->setPixmap(
+                        levyMiraDerecha ? pixLevyGolpe : pixLevyGolpeIzq);
                 } else if (!levyGolpeando) {
-                    if (levyMiraDerecha) {
-                        spriteLevy->setPixmap(pixLevyNormal);
-                    } else {
-                        spriteLevy->setPixmap(pixLevyNormalIzq);
-                    }
+                    spriteLevy->setPixmap(
+                        levyMiraDerecha ? pixLevyNormal : pixLevyNormalIzq);
                 }
 
-                // Contador para volver al sprite normal
                 if (levyGolpeando) {
                     contadorLevyGolpe++;
                     if (contadorLevyGolpe >= 12) {
                         levyGolpeando     = false;
                         contadorLevyGolpe = 0;
-                        if (levyMiraDerecha) {
-                            spriteLevy->setPixmap(pixLevyNormal);
-                        } else {
-                            spriteLevy->setPixmap(pixLevyNormalIzq);
-                        }
+                        spriteLevy->setPixmap(
+                            levyMiraDerecha ? pixLevyNormal : pixLevyNormalIzq);
                     }
                 }
             }
         }
-    } else {
-        // Variantes Nivel 2
-        if (spriteLevy) spriteLevy->setVisible(false);
 
+        // Portal Nivel 1 — solo 1, con animación
+        const QList<Portal*>& portales = engine->getPortales();
+        if (!portales.isEmpty() && spritePortal) {
+            Portal* portal = portales[0];
+            spritePortal->setPos(portal->getX(), portal->getY());
+            spritePortal->setVisible(portal->isActivo());
+            float radio = portal->getRadioActual();
+            if (radio < 20.0f) radio = 20.0f;
+            float escala = radio / 40.0f;
+            spritePortal->setScale(escala);
+            spritePortal->setRotation(spritePortal->rotation() + 1.5f);
+            spritePortal->setOffset(-radio, -radio);
+        }
+
+    } else {
+        // ── Nivel 2 ───────────────────────────────────────────
+
+        // Ocultar Levy y portal Nivel 1
+        if (spriteLevy)  spriteLevy->setVisible(false);
+        if (spritePortal) spritePortal->setVisible(false);
+
+        // Limpiar sprites variantes
         for (QGraphicsPixmapItem* s : spritesVariantes) {
-            escena->removeItem(s);
-            delete s;
+            escena->removeItem(s); delete s;
         }
         spritesVariantes.clear();
 
-        QPixmap arrayPixmaps[6] = {
-            QPixmap(":/sprites/Sprites/Hoodvincible_85x85.png").scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation),
-            QPixmap(":/sprites/Sprites/Full-Mask-Mark.png").scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation),
-            QPixmap(":/sprites/Sprites/Capevincible_85x85.png").scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation),
-            QPixmap(":/sprites/Sprites/Movincihawk_85x85.png").scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation),
-            QPixmap(":/sprites/Sprites/Viltrumincible_85x85.png").scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation),
-            QPixmap(":/sprites/Sprites/Omni-Mark_85x85.png").scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation)
-        };
+        // Limpiar portales Nivel 2
+        for (QGraphicsPixmapItem* s : spritesPortalesNivel2) {
+            escena->removeItem(s); delete s;
+        }
+        spritesPortalesNivel2.clear();
+
+        QPixmap pixVariante = QPixmap(":/sprites/Sprites/Capevincible_85x85.png")
+                                  .scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        QPixmap pixVoladora = QPixmap(":/sprites/Sprites/Viltrumincible_85x85.png")
+                                  .scaled(50, 50, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
         int indexHUD = 0;
 
         for (Enemigo* e : enemigos) {
-            if (!e->isActivo()) continue;;
+            if (!e->isActivo()) continue;
 
-            // 1. Dibujar el Sprite del enemigo solo si está visible actualmente en pantalla
+            // Sprite solo si está visible en pantalla
             if (e->isVisible()) {
-                QGraphicsPixmapItem* sprVariante = new QGraphicsPixmapItem();
-
-                // Asignamos la imagen correspondiente según su número de lista
-                sprVariante->setPixmap(arrayPixmaps[indexHUD % 6]);
-
-                sprVariante->setPos(e->getX(), e->getY());
-                sprVariante->setZValue(2);
-                escena->addItem(sprVariante);
-                spritesVariantes.append(sprVariante);
+                QGraphicsPixmapItem* spr = new QGraphicsPixmapItem();
+                VariantePortal* vp = dynamic_cast<VariantePortal*>(e);
+                spr->setPixmap(vp ? pixVoladora : pixVariante);
+                spr->setPos(e->getX(), e->getY());
+                spr->setZValue(2);
+                escena->addItem(spr);
+                spritesVariantes.append(spr);
             }
 
-            int columna = indexHUD % 3;
-            int fila = indexHUD / 3;
-
-            float inicioX = 570.0f;
-            float inicioY = 515.0f;
+            // HUD barra de vida
+            float inicioX    = 590.0f;
+            float inicioY    = 515.0f;
             float anchoBarra = 60.0f;
-            float altoBarra = 18.0f;
-            float margenX = 15.0f;
-            float margenY = 15.0f;
-
-            float xAbsoluto = inicioX + columna * (anchoBarra + margenX);
-            float yAbsoluto = inicioY + fila * (altoBarra + margenY);
+            float altoBarra  = 18.0f;
+            float margenX    = 15.0f;
+            float margenY    = 15.0f;
+            int   columna    = indexHUD % 3;
+            int   fila       = indexHUD / 3;
+            float xPos = inicioX + columna * (anchoBarra + margenX);
+            float yPos = inicioY + fila    * (altoBarra  + margenY);
 
             float pctVida = e->getVida() / e->getVidaMaxima();
             if (pctVida < 0.0f) pctVida = 0.0f;
 
-            // Nueva Etiqueta de Nombre Dinámica
-            QGraphicsTextItem* etiqueta = new QGraphicsTextItem("Variante " + QString::number(indexHUD + 1));
+            QGraphicsTextItem* etiqueta = new QGraphicsTextItem(
+                "V" + QString::number(indexHUD + 1));
             etiqueta->setDefaultTextColor(Qt::white);
             etiqueta->setFont(QFont("Arial", 7, QFont::Bold));
-            etiqueta->setPos(xAbsoluto - 2.0f, yAbsoluto + 15.0f); // Se posiciona justo encima de la barra
+            etiqueta->setPos(xPos, yPos + 15.0f);
             etiqueta->setZValue(12);
             escena->addItem(etiqueta);
             etiquetasVariantes.append(etiqueta);
 
-            // Fondo de la barra (Rojo oscuro)
-            QGraphicsRectItem* fondoBarra = new QGraphicsRectItem(xAbsoluto, yAbsoluto, anchoBarra, altoBarra);
+            QGraphicsRectItem* fondoBarra = new QGraphicsRectItem(
+                xPos, yPos, anchoBarra, altoBarra);
             fondoBarra->setBrush(Qt::darkRed);
             fondoBarra->setPen(Qt::NoPen);
-            fondoBarra->setZValue(10); // Siempre por encima del fondo y personajes
+            fondoBarra->setZValue(10);
             escena->addItem(fondoBarra);
             barrasVidaEstaticas.append(fondoBarra);
 
-            // Nivel de vida (Amarillo)
-            QGraphicsRectItem* barraVida = new QGraphicsRectItem(xAbsoluto, yAbsoluto, anchoBarra * pctVida, altoBarra);
+            QGraphicsRectItem* barraVida = new QGraphicsRectItem(
+                xPos, yPos, anchoBarra * pctVida, altoBarra);
             barraVida->setBrush(Qt::yellow);
             barraVida->setPen(Qt::NoPen);
-            barraVida->setZValue(11); // Por encima del fondo rojo
+            barraVida->setZValue(11);
             escena->addItem(barraVida);
             barrasVidaEstaticas.append(barraVida);
 
-            indexHUD++; // Avanzar al siguiente hueco en la cuadrícula
+            indexHUD++;
         }
-    }
 
-    // ── Portal ────────────────────────────────────────────────
-    const QList<Portal*>& portales = engine->getPortales();
-    if (!portales.isEmpty() && spritePortal && engine->getEstado().getNivel() == 1) {
-        Portal* portal = portales[0];
-        spritePortal->setPos(portal->getX(), portal->getY());
-        spritePortal->setVisible(portal->isActivo());
-        float radio = portal->getRadioActual();
-        if (radio < 20.0f) radio = 20.0f;
-        float escala = radio / 40.0f;
-        spritePortal->setScale(escala);
-        spritePortal->setRotation(spritePortal->rotation() + 1.5f);
-        spritePortal->setOffset(-radio, -radio);
-    } else if (engine->getEstado().getNivel() == 2 && spritePortal) {
-        spritePortal->setVisible(false);   // Los portales del Nivel 2 se dibujan solos
+        // Portales dinámicos Nivel 2
+        QPixmap pixPortalN2 = QPixmap(":/sprites/assets/sprites/Portal.png")
+                                  .scaled(60, 60, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+        const QList<Portal*>& portales = engine->getPortales();
+        for (Portal* p : portales) {
+            if (!p->isActivo()) continue;
+            QGraphicsPixmapItem* sprP = new QGraphicsPixmapItem(pixPortalN2);
+            sprP->setPos(p->getX() - 30.0f, p->getY() - 30.0f);
+            sprP->setZValue(1);
+            escena->addItem(sprP);
+            spritesPortalesNivel2.append(sprP);
+        }
     }
 }
 
@@ -744,14 +722,12 @@ void MainWindow::actualizarHUD()
         float pctLevy = estado.getVidaLevy() / estado.getVidaMaxLevy();
         if (pctLevy < 0.0f) pctLevy = 0.0f;
         barraVidaLevy->setRect(620, 515, 150 * pctLevy, 18);
-
         textoTiempo->setPlainText("");
 
     } else if (estado.getNivel() == 2) {
         barraVidaLevy->setVisible(false);
         fondoVidaLevy->setVisible(false);
         labelLevy->setVisible(false);
-
         textoTiempo->setPlainText(
             "Tiempo: " + QString::number(
                 (int)estado.getTiempoRestante()) + "s");
@@ -764,27 +740,23 @@ void MainWindow::mostrarPantallaFin(bool victoria)
     timerLoop->stop();
     int nivelActual = engine->getEstado().getNivel();
 
-    // ── 1. Determinar la música de fin de nivel ──
     if (victoria) {
-        if (nivelActual == 1) cambiarMusica(3);
-        else cambiarMusica(4);
+        cambiarMusica(nivelActual == 1 ? 3 : 4);
     } else {
-        if (nivelActual == 1) cambiarMusica(5);
-        else cambiarMusica(6);
+        cambiarMusica(nivelActual == 1 ? 5 : 6);
     }
 
     limpiarMenusUI();
 
-    // Fondo oscuro
     QGraphicsRectItem* fondo = new QGraphicsRectItem(0, 0, 800, 600);
     fondo->setBrush(QBrush(QColor(0, 0, 0, 190)));
     fondo->setZValue(10);
     escena->addItem(fondo);
     itemsMenu.append(fondo);
 
-    // ── 2. Pantalla de Transición al Nivel 2 ──
+    // Transición al Nivel 2
     if (victoria && nivelActual == 1) {
-        QGraphicsTextItem* textoExito = new QGraphicsTextItem("¡NIVEL 1 SUPERADO!");
+        QGraphicsTextItem* textoExito = new QGraphicsTextItem("NIVEL 1 SUPERADO!");
         textoExito->setDefaultTextColor(QColor(0, 255, 100));
         textoExito->setFont(QFont("Arial", 40, QFont::Bold));
         textoExito->setPos(150, 180);
@@ -804,9 +776,9 @@ void MainWindow::mostrarPantallaFin(bool victoria)
         return;
     }
 
-    // ── 3. Pantalla de Derrota o Victoria Final ──
-    QString mensaje = victoria ? "¡VICTORIA FINAL!" : "DERROTA";
-    QColor colorMsg = victoria ? QColor(0, 255, 100) : QColor(255, 50, 50);
+    // Victoria final o derrota
+    QString mensaje  = victoria ? "VICTORIA FINAL!" : "DERROTA";
+    QColor  colorMsg = victoria ? QColor(0, 255, 100) : QColor(255, 50, 50);
 
     QGraphicsTextItem* textoFin = new QGraphicsTextItem(mensaje);
     textoFin->setDefaultTextColor(colorMsg);
@@ -816,7 +788,8 @@ void MainWindow::mostrarPantallaFin(bool victoria)
     escena->addItem(textoFin);
     itemsMenu.append(textoFin);
 
-    QGraphicsTextItem* puntaje = new QGraphicsTextItem("Puntos: " + QString::number(engine->getEstado().getPuntos()));
+    QGraphicsTextItem* puntaje = new QGraphicsTextItem(
+        "Puntos: " + QString::number(engine->getEstado().getPuntos()));
     puntaje->setDefaultTextColor(Qt::yellow);
     puntaje->setFont(QFont("Arial", 20));
     puntaje->setPos(320, 280);
@@ -824,13 +797,13 @@ void MainWindow::mostrarPantallaFin(bool victoria)
     escena->addItem(puntaje);
     itemsMenu.append(puntaje);
 
-    QGraphicsTextItem* textoReiniciar = new QGraphicsTextItem("REGRESAR AL MENU");
-    textoReiniciar->setDefaultTextColor(Qt::white);
-    textoReiniciar->setFont(QFont("Arial", 20, QFont::Bold));
-    textoReiniciar->setPos(260, 360);
-    textoReiniciar->setZValue(11);
-    escena->addItem(textoReiniciar);
-    itemsMenu.append(textoReiniciar);
+    QGraphicsTextItem* textoRegresa = new QGraphicsTextItem("REGRESAR AL MENU");
+    textoRegresa->setDefaultTextColor(Qt::white);
+    textoRegresa->setFont(QFont("Arial", 20, QFont::Bold));
+    textoRegresa->setPos(260, 360);
+    textoRegresa->setZValue(11);
+    escena->addItem(textoRegresa);
+    itemsMenu.append(textoRegresa);
 
     enMenu = true;
 }
@@ -838,45 +811,42 @@ void MainWindow::mostrarPantallaFin(bool victoria)
 // ── reiniciarJuego ───────────────────────────────────────────────
 void MainWindow::reiniciarJuego()
 {
-    if (textoFinJuego) {
-        escena->removeItem(textoFinJuego);
-        delete textoFinJuego;
-        textoFinJuego = nullptr;
-    }
-
-    if (textoReiniciar) {
-        escena->removeItem(textoReiniciar);
-        delete textoReiniciar;
-        textoReiniciar = nullptr;
-    }
-
-    if (textoPuntajeFinal) {
-        escena->removeItem(textoPuntajeFinal);
-        delete textoPuntajeFinal;
-        textoPuntajeFinal = nullptr;
-    }
-
     for (QGraphicsPixmapItem* s : spritesVariantes) {
-        escena->removeItem(s);
-        delete s;
+        escena->removeItem(s); delete s;
     }
     spritesVariantes.clear();
+
+    for (QGraphicsPixmapItem* s : spritesPortalesNivel2) {
+        escena->removeItem(s); delete s;
+    }
+    spritesPortalesNivel2.clear();
+
+    for (QGraphicsRectItem* b : barrasVidaEstaticas) {
+        escena->removeItem(b); delete b;
+    }
+    barrasVidaEstaticas.clear();
+
+    for (QGraphicsTextItem* e : etiquetasVariantes) {
+        escena->removeItem(e); delete e;
+    }
+    etiquetasVariantes.clear();
 
     mirandoDerecha    = true;
     mostrandoGolpe    = false;
     contadorGolpe     = 0;
     levyGolpeando     = false;
     contadorLevyGolpe = 0;
+    contadorAnimacion = 0;
+    jugadorMoviendose = false;
+    juegoPausado      = false;
 
     cambiarFondo(1);
-    juegoPausado = false;
     dibujarMenuPrincipal();
-
     cambiarMusica(0);
     setFocus();
 }
 
-// Interfaz
+// ── crearBotonPausa ──────────────────────────────────────────────
 void MainWindow::crearBotonPausa()
 {
     btnPausaFondo = new QGraphicsRectItem(10, 10, 80, 30);
@@ -892,6 +862,7 @@ void MainWindow::crearBotonPausa()
     escena->addItem(btnPausaTexto);
 }
 
+// ── limpiarMenusUI ───────────────────────────────────────────────
 void MainWindow::limpiarMenusUI()
 {
     for (QGraphicsItem* item : itemsMenu) {
@@ -901,6 +872,7 @@ void MainWindow::limpiarMenusUI()
     itemsMenu.clear();
 }
 
+// ── alternarPausa ────────────────────────────────────────────────
 void MainWindow::alternarPausa()
 {
     if (!juegoPausado) {
@@ -921,7 +893,7 @@ void MainWindow::alternarPausa()
     }
 }
 
-// Vistas Dinámicas (Menús)
+// ── dibujarMenuPrincipal ─────────────────────────────────────────
 void MainWindow::dibujarMenuPrincipal()
 {
     limpiarMenusUI();
@@ -933,7 +905,7 @@ void MainWindow::dibujarMenuPrincipal()
     escena->addItem(fondo);
     itemsMenu.append(fondo);
 
-    QGraphicsTextItem* titulo = new QGraphicsTextItem("INVINCIBLE KICKBOXING");
+    QGraphicsTextItem* titulo = new QGraphicsTextItem("INVINCIBLE KICKBOXER");
     titulo->setDefaultTextColor(QColor(255, 200, 0));
     titulo->setFont(QFont("Arial", 32, QFont::Bold));
     titulo->setPos(80, 120);
@@ -941,7 +913,11 @@ void MainWindow::dibujarMenuPrincipal()
     escena->addItem(titulo);
     itemsMenu.append(titulo);
 
-    QString opciones[] = {"JUGAR", "SELECCIONAR NIVEL (" + QString::number(nivelInicioActual) + ")", "SELECCIONAR DIFICULTAD"};
+    QString opciones[] = {
+        "JUGAR",
+        "SELECCIONAR NIVEL (" + QString::number(nivelInicioActual) + ")",
+        "SELECCIONAR DIFICULTAD"
+    };
     for (int i = 0; i < 3; i++) {
         QGraphicsTextItem* texto = new QGraphicsTextItem(opciones[i]);
         texto->setDefaultTextColor(Qt::white);
@@ -953,6 +929,7 @@ void MainWindow::dibujarMenuPrincipal()
     }
 }
 
+// ── dibujarMenuPausa ─────────────────────────────────────────────
 void MainWindow::dibujarMenuPausa()
 {
     limpiarMenusUI();
@@ -971,10 +948,14 @@ void MainWindow::dibujarMenuPausa()
     escena->addItem(titulo);
     itemsMenu.append(titulo);
 
-    int nivelActual = engine->getEstado().getNivel();
+    int nivelActual  = engine->getEstado().getNivel();
     int proximoNivel = (nivelActual == 1) ? 2 : 1;
 
-    QString opciones[] = {"REANUDAR", "IR AL NIVEL " + QString::number(proximoNivel), "SELECCIONAR DIFICULTAD"};
+    QString opciones[] = {
+        "REANUDAR",
+        "IR AL NIVEL " + QString::number(proximoNivel),
+        "SELECCIONAR DIFICULTAD"
+    };
     for (int i = 0; i < 3; i++) {
         QGraphicsTextItem* texto = new QGraphicsTextItem(opciones[i]);
         texto->setDefaultTextColor(Qt::white);
@@ -986,6 +967,7 @@ void MainWindow::dibujarMenuPausa()
     }
 }
 
+// ── dibujarMenuDificultad ────────────────────────────────────────
 void MainWindow::dibujarMenuDificultad(bool desdePausa)
 {
     limpiarMenusUI();
@@ -998,7 +980,12 @@ void MainWindow::dibujarMenuDificultad(bool desdePausa)
     itemsMenu.append(fondo);
 
     QString opciones[] = {"REGRESAR", "FACIL", "NORMAL", "DIFICIL"};
-    QColor colores[] = {Qt::white, QColor(0, 220, 100), QColor(255, 200, 0), QColor(220, 50, 50)};
+    QColor  colores[]  = {
+        Qt::white,
+        QColor(0, 220, 100),
+        QColor(255, 200, 0),
+        QColor(220, 50, 50)
+    };
 
     for (int i = 0; i < 4; i++) {
         QGraphicsTextItem* texto = new QGraphicsTextItem(opciones[i]);

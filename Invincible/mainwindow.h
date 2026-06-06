@@ -8,6 +8,7 @@
 #include <QTimer>
 #include <QElapsedTimer>
 #include <QKeyEvent>
+#include <QMouseEvent>
 #include <QSet>
 #include <QList>
 #include <QMediaPlayer>
@@ -52,20 +53,25 @@ private:
     GameEngine*            engine;
 
     // ── Sprites ──────────────────────────────────────────────
-    QGraphicsPixmapItem*   spriteJugador;
-    QGraphicsPixmapItem*   spriteLevy;
-    QGraphicsPixmapItem*   spritePortal;
-    QGraphicsPixmapItem*   itemFondo;
+    QGraphicsPixmapItem*        spriteJugador;
+    QGraphicsPixmapItem*        spriteLevy;
+    QGraphicsPixmapItem*        spritePortal;
+    QGraphicsPixmapItem*        itemFondo;
     QList<QGraphicsPixmapItem*> spritesVariantes;
+    QList<QGraphicsPixmapItem*> spritesPortalesNivel2;
 
     // ── Pixmaps jugador ───────────────────────────────────────
     QPixmap                pixJugadorNormal;
     QPixmap                pixJugadorNormalIzq;
     QPixmap                pixJugadorGolpe;
     QPixmap                pixJugadorGolpeIzq;
+    QPixmap                pixJugadorWalk;
+    QPixmap                pixJugadorWalkIzq;
     bool                   mostrandoGolpe;
     int                    contadorGolpe;
     bool                   mirandoDerecha;
+    int                    contadorAnimacion;
+    bool                   jugadorMoviendose;
 
     // ── Pixmaps Levy ──────────────────────────────────────────
     QPixmap                pixLevyNormal;
@@ -76,40 +82,29 @@ private:
     int                    contadorLevyGolpe;
 
     // ── HUD ──────────────────────────────────────────────────
-    QGraphicsRectItem*     barraVidaJugador;
-    QGraphicsRectItem*     barraVidaLevy;
-    QGraphicsRectItem*     fondoVidaLevy;
-    QGraphicsTextItem*     labelLevy;
-    QGraphicsTextItem*     textoPuntos;
-    QGraphicsTextItem*     textoTiempo;
-    QList<QGraphicsRectItem*> barrasVidaEstaticas;
-    QList<QGraphicsTextItem*> etiquetasVariantes;
+    QGraphicsRectItem*         barraVidaJugador;
+    QGraphicsRectItem*         barraVidaLevy;
+    QGraphicsRectItem*         fondoVidaLevy;
+    QGraphicsTextItem*         labelLevy;
+    QGraphicsTextItem*         textoPuntos;
+    QGraphicsTextItem*         textoTiempo;
+    QList<QGraphicsRectItem*>  barrasVidaEstaticas;
+    QList<QGraphicsTextItem*>  etiquetasVariantes;
 
     // ── Pantalla de fin ───────────────────────────────────────
     QGraphicsTextItem*     textoFinJuego;
     QGraphicsTextItem*     textoReiniciar;
     QGraphicsTextItem*     textoPuntajeFinal;
+    QGraphicsTextItem*     textoSalir;
 
     // ── Menú ──────────────────────────────────────────────────
-
-    // HUD Pausa
-    QGraphicsRectItem* btnPausaFondo;
-    QGraphicsTextItem* btnPausaTexto;
-
-    // Sistema de Menús Dinámicos
     QList<QGraphicsItem*>  itemsMenu;
-    int                    nivelInicioActual;
+    QGraphicsRectItem*     btnPausaFondo;
+    QGraphicsTextItem*     btnPausaTexto;
+    bool                   enMenu;
     bool                   juegoPausado;
     bool                   enSubmenuDesdePausa;
-    bool                   enMenu;
-
-    // Métodos para gestionar UI
-    void crearBotonPausa();
-    void alternarPausa();
-    void dibujarMenuPrincipal();
-    void dibujarMenuPausa();
-    void dibujarMenuDificultad(bool desdePausa);
-    void limpiarMenusUI();
+    int                    nivelInicioActual;
 
     // ── Audio ─────────────────────────────────────────────────
     QMediaPlayer*          musicaFondo;
@@ -131,6 +126,13 @@ private:
     void reiniciarJuego();
     void cambiarFondo(int nivel);
     void cambiarMusica(int estadoMusica);
+    void crearBotonPausa();
+    void limpiarMenusUI();
+    void alternarPausa();
+    void dibujarMenuPrincipal();
+    void dibujarMenuPausa();
+    void dibujarMenuDificultad(bool desdePausa);
+    void iniciarJuego(int nivel);
 };
 
 #endif // MAINWINDOW_H
