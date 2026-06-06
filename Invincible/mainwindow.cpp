@@ -63,8 +63,17 @@ MainWindow::MainWindow(QWidget *parent)
     , textoReiniciar(nullptr)
     , textoPuntajeFinal(nullptr)
     , textoSalir(nullptr)
+<<<<<<< HEAD
+    , fondoMenu(nullptr)
+    , textoTitulo(nullptr)
+    , textoSubtitulo(nullptr)
+    , textoFacil(nullptr)
+    , textoNormal(nullptr)
+    , textoDificil(nullptr)
+=======
     , btnPausaFondo(nullptr)
     , btnPausaTexto(nullptr)
+>>>>>>> origin/main
     , enMenu(true)
     , juegoPausado(false)
     , enSubmenuDesdePausa(false)
@@ -74,6 +83,8 @@ MainWindow::MainWindow(QWidget *parent)
     , efectoGolpe(nullptr)
     , efectoVictoria(nullptr)
     , efectoDerrota(nullptr)
+    , contadorAnimacion(0)
+    , jugadorMoviendose(false)
 {
     ui->setupUi(this);
     setWindowTitle("Invincible Kickboxing");
@@ -225,6 +236,21 @@ void MainWindow::inicializarEscena()
     pixJugadorNormalIzq = pixJugadorNormal.transformed(
         QTransform().scale(-1, 1));
 
+<<<<<<< HEAD
+    pixJugadorGolpe = QPixmap(":/sprites/assets/sprites/invinsibleGolpeSinFondo.png");
+    pixJugadorGolpe = pixJugadorGolpe.scaled(60, 80,
+                                             Qt::KeepAspectRatio,
+                                             Qt::SmoothTransformation);
+
+    pixJugadorGolpeIzq = pixJugadorGolpe.transformed(
+        QTransform().scale(-1, 1));
+
+    pixJugadorWalk = QPixmap(":/sprites/assets/sprites/invincible_walk1.png");
+    pixJugadorWalk = pixJugadorWalk.scaled(60, 80,
+                                           Qt::KeepAspectRatio,
+                                           Qt::SmoothTransformation);
+
+=======
     pixJugadorGolpe = QPixmap(":/sprites/Sprites/Invincible_ataque.png");
     pixJugadorGolpe = pixJugadorGolpe.scaled(60, 80,
                                              Qt::KeepAspectRatio, Qt::SmoothTransformation);
@@ -234,6 +260,7 @@ void MainWindow::inicializarEscena()
     pixJugadorWalk = QPixmap(":/sprites/Sprites/Invincible_mov.png");
     pixJugadorWalk = pixJugadorWalk.scaled(60, 80,
                                            Qt::KeepAspectRatio, Qt::SmoothTransformation);
+>>>>>>> origin/main
     pixJugadorWalkIzq = pixJugadorWalk.transformed(
         QTransform().scale(-1, 1));
 
@@ -435,9 +462,17 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
             engine->aplicarAtaqueJugador();
             jugador->resetDanio();
             efectoGolpe->play();
+<<<<<<< HEAD
+
             mostrandoGolpe    = true;
             contadorGolpe     = 0;
             jugadorMoviendose = false;
+
+=======
+            mostrandoGolpe    = true;
+            contadorGolpe     = 0;
+            jugadorMoviendose = false;
+>>>>>>> origin/main
             if (mirandoDerecha) {
                 spriteJugador->setPixmap(pixJugadorGolpe);
             } else {
@@ -455,6 +490,12 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
         if (est == GameState::EstadoPartida::VICTORIA ||
             est == GameState::EstadoPartida::DERROTA) {
             QApplication::quit();
+<<<<<<< HEAD
+        } else if (timerLoop->isActive()) {
+            engine->pausar();
+            musicaFondo->pause();
+=======
+>>>>>>> origin/main
         } else {
             alternarPausa();
         }
@@ -673,6 +714,12 @@ void MainWindow::sincronizarSprites()
                         levyMiraDerecha = (jug->getX() > levy->getX());
                     }
 
+<<<<<<< HEAD
+                if (levyGolpeando) {
+                    contadorLevyGolpe++;
+                    if (contadorLevyGolpe >= 12) {
+                        levyGolpeando     = false;
+=======
                     // 2. Transiciones de Estado
                     float dx = levy->getX() - jug->getX();
                     float dy = levy->getY() - jug->getY();
@@ -681,6 +728,7 @@ void MainWindow::sincronizarSprites()
                     // Si está cerca, inicia el ataque
                     if (dist < 80.0f && !levyGolpeando) {
                         levyGolpeando = true;
+>>>>>>> origin/main
                         contadorLevyGolpe = 0;
                     }
 
@@ -998,6 +1046,19 @@ void MainWindow::mostrarPantallaFin(bool victoria)
     escena->addItem(puntaje);
     itemsMenu.append(puntaje);
 
+<<<<<<< HEAD
+    textoReiniciar = new QGraphicsTextItem("Presiona R para reiniciar");
+    textoReiniciar->setDefaultTextColor(Qt::white);
+    textoReiniciar->setFont(QFont("Arial", 16));
+    textoReiniciar->setPos(230, 340);
+    escena->addItem(textoReiniciar);
+
+    textoSalir = new QGraphicsTextItem("Presiona ESC para salir");
+    textoSalir->setDefaultTextColor(QColor(220, 50, 50));
+    textoSalir->setFont(QFont("Arial", 16));
+    textoSalir->setPos(245, 375);
+    escena->addItem(textoSalir);
+=======
     QGraphicsTextItem* textoRegresa = new QGraphicsTextItem("REGRESAR AL MENU");
     textoRegresa->setDefaultTextColor(Qt::white);
     textoRegresa->setFont(QFont("Arial", 20, QFont::Bold));
@@ -1007,6 +1068,7 @@ void MainWindow::mostrarPantallaFin(bool victoria)
     itemsMenu.append(textoRegresa);
 
     enMenu = true;
+>>>>>>> origin/main
 }
 
 // ── reiniciarJuego ───────────────────────────────────────────────
@@ -1027,8 +1089,20 @@ void MainWindow::reiniciarJuego()
     }
     barrasVidaEstaticas.clear();
 
+<<<<<<< HEAD
+    if (textoSalir) {
+        escena->removeItem(textoSalir);
+        delete textoSalir;
+        textoSalir = nullptr;
+    }
+
+    for (QGraphicsPixmapItem* s : spritesClones) {
+        escena->removeItem(s);
+        delete s;
+=======
     for (QGraphicsTextItem* e : etiquetasVariantes) {
         escena->removeItem(e); delete e;
+>>>>>>> origin/main
     }
     etiquetasVariantes.clear();
 
@@ -1039,7 +1113,10 @@ void MainWindow::reiniciarJuego()
     contadorLevyGolpe = 0;
     contadorAnimacion = 0;
     jugadorMoviendose = false;
+<<<<<<< HEAD
+=======
     juegoPausado      = false;
+>>>>>>> origin/main
 
     cambiarFondo(1);
     dibujarMenuPrincipal();
