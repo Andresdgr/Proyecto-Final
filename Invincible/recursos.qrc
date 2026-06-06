@@ -3,11 +3,6 @@
         <file>assets/sprites/Amstrongr.png</file>
         <file>assets/sprites/Escenario.png</file>
         <file>assets/sprites/Invincible.png</file>
-        <file>assets/sprites/Portal.png</file>
-        <file>Sprites/Capevincible_85x85.png</file>
-        <file>Sprites/Full-Mask-Mark.png</file>
-        <file>Sprites/Hoodvincible_85x85.png</file>
-        <file>Sprites/Invincible_85x85.png</file>
         <file>Sprites/Movincihawk_85x85.png</file>
         <file>Sprites/Nivel_2.png</file>
         <file>Sprites/Omni-Mark_85x85.png</file>
@@ -16,12 +11,27 @@
         <file>assets/sprites/invinsibleGolpeSinFondo.png</file>
         <file>assets/sprites/Viltrumincible_85x85.png</file>
         <file>assets/sprites/levi_golpe.png</file>
-        <file>soundtrack/golpe.wav</file>
-        <file>soundtrack/Tom_tom.wav</file>
-        <file>soundtrack/win.wav</file>
-        <file>soundtrack/lo2se.wav</file>
-        <file>soundtrack/lose.wav</file>
-        <file>soundtrack/levy.wav</file>
-        <file>soundtrack/win2.wav</file>
+        <file>Sprites/Capevincible_ataque.png</file>
+        <file>Sprites/Capevincible_base.png</file>
+        <file>Sprites/Capevincible_mov.png</file>
+        <file>Sprites/Invincible_ataque.png</file>
+        <file>Sprites/Invincible_base.png</file>
+        <file>Sprites/Invincible_mov.png</file>
+        <file>Sprites/Amstrong.png</file>
+        <file>Sprites/Amstrong_ataque.png</file>
+        <file>Sprites/Amstrong_mov.png</file>
+        <file>Sprites/Movincihawk_ataque.png</file>
+        <file>Sprites/Movincihawk_base.png</file>
+        <file>Sprites/Movincihawk_mov.png</file>
+        <file>assets/sprites/Portal.png</file>
+    </qresource>
+    <qresource prefix="/">
+        <file>soundtrack/golpe.mp3</file>
+        <file>soundtrack/levy.mp3</file>
+        <file>soundtrack/lo2se.mp3</file>
+        <file>soundtrack/lose.mp3</file>
+        <file>soundtrack/Tom_tom.mp3</file>
+        <file>soundtrack/win.mp3</file>
+        <file>soundtrack/win2.mp3</file>
     </qresource>
 </RCC>

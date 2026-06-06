@@ -22,11 +22,13 @@ public:
     float getVidaMaxima() const;
     float getMasa()       const;
     bool  isActivo()      const;
+    float getTiempoRecuperacionGolpe() const;
 
     // ── Setters ─────────────────────────────────────────────────────
     // 3. Nuevos métodos para sincronizar las matemáticas con los gráficos
     void setPosicion(float nuevoX, float nuevoY);
     void setVelocidad(float vX, float vY);
+    void reducirTiempoRecuperacion(float dt);
 
 protected:
     float x;
@@ -43,6 +45,7 @@ protected:
     bool activo;
 
     void limitarBordes(float limiteX, float limiteY, float anchoSprite, float altoSprite);
+    float tiempoRecuperacionGolpe;
 };
 
 #endif

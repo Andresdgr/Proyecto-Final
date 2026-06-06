@@ -12,6 +12,7 @@
 #include "jugador.h"
 #include "varianteportal.h"
 #include "variante.h"
+#include "angstromlevy.h"
 
 // ── Constructor ─────────────────────────────────────────────────
 MainWindow::MainWindow(QWidget *parent)
@@ -26,6 +27,23 @@ MainWindow::MainWindow(QWidget *parent)
     , spriteLevy(nullptr)
     , spritePortal(nullptr)
     , itemFondo(nullptr)
+    , mostrandoGolpe(false)
+    , contadorGolpe(0)
+    , mirandoDerecha(true)
+    , pixVarianteBase(QPixmap())
+    , pixVarianteWalk(QPixmap())
+    , pixVarianteWalkIzq(QPixmap())
+    , pixVarianteAttack(QPixmap())
+    , pixVarianteAttackIzq(QPixmap())
+    , pixVariantePortalBase(QPixmap())
+    , pixVariantePortalWalk(QPixmap())
+    , pixVariantePortalWalkIzq(QPixmap())
+    , pixVariantePortalAttack(QPixmap())
+    , pixVariantePortalAttackIzq(QPixmap())
+    , contadorAnimacion(0)
+    , jugadorMoviendose(false)
+    , levyGolpeando(false)
+    , contadorLevyGolpe(0)
     , barraVidaJugador(nullptr)
     , barraVidaLevy(nullptr)
     , fondoVidaLevy(nullptr)
@@ -42,22 +60,14 @@ MainWindow::MainWindow(QWidget *parent)
     , juegoPausado(false)
     , enSubmenuDesdePausa(false)
     , nivelInicioActual(1)
-    , mostrandoGolpe(false)
-    , contadorGolpe(0)
-    , mirandoDerecha(true)
-    , levyGolpeando(false)
-    , contadorLevyGolpe(0)
     , musicaFondo(nullptr)
     , audioFondo(nullptr)
     , efectoGolpe(nullptr)
     , efectoVictoria(nullptr)
     , efectoDerrota(nullptr)
-    , contadorAnimacion(0)
-    , jugadorMoviendose(false)
 {
     ui->setupUi(this);
-
-    setWindowTitle("Invincible Kickboxer");
+    setWindowTitle("Invincible Kickboxing");
     setFixedSize(800, 600);
 
     engine = new GameEngine(config);
@@ -78,21 +88,21 @@ MainWindow::MainWindow(QWidget *parent)
     audioFondo  = new QAudioOutput(this);
     musicaFondo->setAudioOutput(audioFondo);
     audioFondo->setVolume(0.4f);
-    musicaFondo->setLoops(QMediaPlayer::Infinite);
+    musicaFondo->setLoops(QMediaPlayer::Infinite); // Bucle infinito para música
 
     efectoGolpe = new QSoundEffect(this);
-    efectoGolpe->setSource(QUrl::fromLocalFile(rutaBase + "golpe.wav"));
+    efectoGolpe->setSource(QUrl::fromLocalFile(rutaBase + "golpe.mp3"));
     efectoGolpe->setVolume(0.8f);
 
     efectoVictoria = new QSoundEffect(this);
-    efectoVictoria->setSource(QUrl::fromLocalFile(rutaBase + "win.wav"));
+    efectoVictoria->setSource(QUrl::fromLocalFile(rutaBase + "win.mp3"));
     efectoVictoria->setVolume(1.0f);
 
     efectoDerrota = new QSoundEffect(this);
-    efectoDerrota->setSource(QUrl::fromLocalFile(rutaBase + "lose.wav"));
+    efectoDerrota->setSource(QUrl::fromLocalFile(rutaBase + "lose.mp3"));
     efectoDerrota->setVolume(1.0f);
 
-    dibujarMenuPrincipal();
+    dibujarMenuPrincipal(); // Se ajustó a tu método actual
     cambiarMusica(0);
     setFocus();
 }
@@ -123,39 +133,45 @@ void MainWindow::iniciarJuego(int nivel)
 // ── cambiarMusica ────────────────────────────────────────────────
 void MainWindow::cambiarMusica(int estadoMusica)
 {
-    musicaFondo->stop();
-    QString rutaBase = QCoreApplication::applicationDirPath() + "/soundtrack/";
+    QUrl nuevaRuta;
 
+    // Detener efectos cortos si estaban sonando
+    efectoVictoria->stop();
+    efectoDerrota->stop();
+
+    // Determinar qué debe sonar
     switch (estadoMusica) {
     case 0: // Menú
-        musicaFondo->setSource(QUrl::fromLocalFile(
-            rutaBase + "Invincible Theme by John Paesano [gF73gPQQsR4].wav"));
-        break;
     case 1: // Nivel 1
-        musicaFondo->setSource(QUrl::fromLocalFile(
-            rutaBase + "Invincible Theme by John Paesano [gF73gPQQsR4].wav"));
+        // Usamos el archivo de tu .qrc
+        nuevaRuta = QUrl("qrc:/soundtrack/levy.mp3");
         break;
     case 2: // Nivel 2
-        musicaFondo->setSource(QUrl::fromLocalFile(
-            rutaBase + "Tom_tom.wav"));
+        nuevaRuta = QUrl("qrc:/soundtrack/Tom_tom.mp3");
         break;
     case 3: // Victoria Nivel 1
     case 4: // Victoria Nivel 2
-        musicaFondo->setSource(QUrl::fromLocalFile(
-            rutaBase + "win.wav"));
-        break;
+        musicaFondo->stop();
+        efectoVictoria->play();
+        return;
     case 5: // Derrota Nivel 1
     case 6: // Derrota Nivel 2
-        musicaFondo->setSource(QUrl::fromLocalFile(
-            rutaBase + "lose.wav"));
-        break;
+        musicaFondo->stop();
+        efectoDerrota->play();
+        return;
     default:
-        musicaFondo->setSource(QUrl::fromLocalFile(
-            rutaBase + "Invincible Theme by John Paesano [gF73gPQQsR4].wav"));
+        nuevaRuta = QUrl("qrc:/soundtrack/levy.mp3");
         break;
     }
 
-    musicaFondo->play();
+    // Solo cambiar el archivo si es una pista diferente
+    if (musicaFondo->source() != nuevaRuta) {
+        musicaFondo->stop();
+        musicaFondo->setSource(nuevaRuta);
+        musicaFondo->play();
+    } else if (musicaFondo->playbackState() != QMediaPlayer::PlayingState) {
+        musicaFondo->play();
+    }
 }
 
 // ── cambiarFondo ─────────────────────────────────────────────────
@@ -203,19 +219,19 @@ void MainWindow::inicializarEscena()
     // ── Sprite jugador ────────────────────────────────────────
     spriteJugador = new QGraphicsPixmapItem();
 
-    pixJugadorNormal = QPixmap(":/sprites/assets/sprites/Invincible.png");
+    pixJugadorNormal = QPixmap(":/sprites/Sprites/Invincible_base.png");
     pixJugadorNormal = pixJugadorNormal.scaled(60, 80,
                                                Qt::KeepAspectRatio, Qt::SmoothTransformation);
     pixJugadorNormalIzq = pixJugadorNormal.transformed(
         QTransform().scale(-1, 1));
 
-    pixJugadorGolpe = QPixmap(":/sprites/assets/sprites/invinsibleGolpeSinFondo.png");
+    pixJugadorGolpe = QPixmap(":/sprites/Sprites/Invincible_ataque.png");
     pixJugadorGolpe = pixJugadorGolpe.scaled(60, 80,
                                              Qt::KeepAspectRatio, Qt::SmoothTransformation);
     pixJugadorGolpeIzq = pixJugadorGolpe.transformed(
         QTransform().scale(-1, 1));
 
-    pixJugadorWalk = QPixmap(":/sprites/assets/sprites/invincible_walk1.png");
+    pixJugadorWalk = QPixmap(":/sprites/Sprites/Invincible_mov.png");
     pixJugadorWalk = pixJugadorWalk.scaled(60, 80,
                                            Qt::KeepAspectRatio, Qt::SmoothTransformation);
     pixJugadorWalkIzq = pixJugadorWalk.transformed(
@@ -229,17 +245,19 @@ void MainWindow::inicializarEscena()
     // ── Sprite Levy ───────────────────────────────────────────
     spriteLevy = new QGraphicsPixmapItem();
 
-    pixLevyNormal = QPixmap(":/sprites/assets/sprites/Amstrongr.png");
-    pixLevyNormal = pixLevyNormal.scaled(70, 90,
-                                         Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    pixLevyNormalIzq = pixLevyNormal.transformed(
-        QTransform().scale(-1, 1));
+    pixLevyNormal = QPixmap(":/sprites/Sprites/Amstrong.png");
+    pixLevyNormal = pixLevyNormal.scaled(70, 90, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    pixLevyNormalIzq = pixLevyNormal.transformed(QTransform().scale(-1, 1));
 
-    pixLevyGolpe = QPixmap(":/sprites/assets/sprites/levi_golpe.png");
-    pixLevyGolpe = pixLevyGolpe.scaled(70, 90,
-                                       Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    pixLevyGolpeIzq = pixLevyGolpe.transformed(
-        QTransform().scale(-1, 1));
+    // CARGAR SPRITE DE CAMINATA
+    pixLevyWalk = QPixmap(":/sprites/Sprites/Amstrong_mov.png"); // Cambia este nombre al archivo real
+    if (pixLevyWalk.isNull()) pixLevyWalk = pixLevyNormal; // Seguridad: usa el normal si no encuentra el archivo
+    pixLevyWalk = pixLevyWalk.scaled(70, 90, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    pixLevyWalkIzq = pixLevyWalk.transformed(QTransform().scale(-1, 1));
+
+    pixLevyGolpe = QPixmap(":/sprites/Sprites/Amstrong_ataque.png");
+    pixLevyGolpe = pixLevyGolpe.scaled(70, 90, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    pixLevyGolpeIzq = pixLevyGolpe.transformed(QTransform().scale(-1, 1));
 
     spriteLevy->setPixmap(pixLevyNormal);
     spriteLevy->setPos(600, 300);
@@ -248,13 +266,43 @@ void MainWindow::inicializarEscena()
 
     // ── Sprite Portal (solo Nivel 1) ──────────────────────────
     spritePortal = new QGraphicsPixmapItem();
-    QPixmap pixPortal(":/sprites/assets/sprites/Portal.png");
+    QPixmap pixPortal(":/sprites/Sprites/Portal.png");
     pixPortal = pixPortal.scaled(80, 80,
                                  Qt::KeepAspectRatio, Qt::SmoothTransformation);
     spritePortal->setPixmap(pixPortal);
     spritePortal->setPos(500, 200);
     spritePortal->setZValue(1);
     escena->addItem(spritePortal);
+
+    // 1. Sprite Base (Quieto o movimiento puramente vertical en Y)
+    pixVarianteBase = QPixmap(":/sprites/Sprites/Movincihawk_base.png");
+    pixVarianteBase = pixVarianteBase.scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+    // 2. Sprite de Caminata/Desplazamiento (Modifica la ruta si creas uno específico)
+    pixVarianteWalk = QPixmap(":/sprites/Sprites/Movincihawk_mov.png");
+    if (pixVarianteWalk.isNull()) pixVarianteWalk = pixVarianteBase; // Seguridad: Usa el base si no existe
+    pixVarianteWalk = pixVarianteWalk.scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    pixVarianteWalkIzq = pixVarianteWalk.transformed(QTransform().scale(-1, 1)); // Inversión horizontal automática
+
+    // 3. Sprite de Ataque (Modifica la ruta si tienes uno específico)
+    pixVarianteAttack = QPixmap(":/sprites/Sprites/Movincihawk_ataque.png");
+    if (pixVarianteAttack.isNull()) pixVarianteAttack = pixVarianteBase;
+    pixVarianteAttack = pixVarianteAttack.scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    pixVarianteAttackIzq = pixVarianteAttack.transformed(QTransform().scale(-1, 1)); // Inversión horizontal automática
+
+    // ── Sprites VariantePortal (voladora) ─────────────────────
+    pixVariantePortalBase = QPixmap(":/sprites/Sprites/Capevincible_base.png");
+    pixVariantePortalBase = pixVariantePortalBase.scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+
+    pixVariantePortalWalk = QPixmap(":/sprites/Sprites/Capevincible_mov.png");
+    if (pixVariantePortalWalk.isNull()) pixVariantePortalWalk = pixVariantePortalBase;
+    pixVariantePortalWalk    = pixVariantePortalWalk.scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    pixVariantePortalWalkIzq = pixVariantePortalWalk.transformed(QTransform().scale(-1, 1));
+
+    pixVariantePortalAttack = QPixmap(":/sprites/Sprites/Capevincible_ataque.png");
+    if (pixVariantePortalAttack.isNull()) pixVariantePortalAttack = pixVariantePortalBase;
+    pixVariantePortalAttack    = pixVariantePortalAttack.scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    pixVariantePortalAttackIzq = pixVariantePortalAttack.transformed(QTransform().scale(-1, 1));
 }
 
 // ── inicializarHUD ───────────────────────────────────────────────
@@ -380,7 +428,7 @@ void MainWindow::keyPressEvent(QKeyEvent *event)
 
     teclasPresionadas.insert(event->key());
 
-    if (event->key() == Qt::Key_Z) {
+    if (event->key() == Qt::Key_M) {
         Jugador* jugador = engine->getJugador();
         if (jugador && jugador->isActivo()) {
             jugador->atacar();
@@ -532,9 +580,57 @@ void MainWindow::sincronizarSprites()
     Jugador* jug = engine->getJugador();
     if (jug && spriteJugador) {
         spriteJugador->setPos(jug->getX(), jug->getY());
-        bool visible = !jug->isInvulnerable() ||
-                       (reloj.elapsed() / 100) % 2 == 0;
-        spriteJugador->setVisible(visible);
+
+        // 1. Orientación (Lee de la capa lógica)
+        float vxJug = jug->getVelX();
+        if (vxJug > 0.01f) {
+            mirandoDerecha = true;
+        } else if (vxJug < -0.01f) {
+            mirandoDerecha = false;
+        }
+
+        // 2. Selección de Sprite por Estado
+        if (mostrandoGolpe) {
+            // Estado: Atacando
+            spriteJugador->setPixmap(mirandoDerecha ? pixJugadorGolpe : pixJugadorGolpeIzq);
+
+            contadorGolpe++;
+            if (contadorGolpe >= 12) { // Termina la animación
+                mostrandoGolpe = false;
+                contadorGolpe = 0;
+            }
+        } else {
+            // Estado: Movimiento pasivo o quieto
+            bool moviendoX = std::abs(jug->getVelX()) > 0.01f;
+            bool moviendoY = std::abs(jug->getVelY()) > 0.01f;
+
+            if (moviendoX || moviendoY) {
+                // Desplazándose activamente (animación de caminata)
+                contadorAnimacion++;
+                if (contadorAnimacion < 10) {
+                    spriteJugador->setPixmap(mirandoDerecha ? pixJugadorNormal : pixJugadorNormalIzq);
+                } else if (contadorAnimacion < 20) {
+                    spriteJugador->setPixmap(mirandoDerecha ? pixJugadorWalk : pixJugadorWalkIzq);
+                } else {
+                    contadorAnimacion = 0;
+                }
+            } else {
+                // Completamente quieto
+                contadorAnimacion = 0;
+                spriteJugador->setPixmap(mirandoDerecha ? pixJugadorNormal : pixJugadorNormalIzq);
+            }
+        }
+
+
+
+        // Efecto de desvanecimiento suave
+        float tRecJug = jug->getTiempoRecuperacionGolpe();
+        if (tRecJug > 0.0f) {
+            // Opacidad va de 0.3 (tras el golpe) recuperándose hasta 1.0
+            spriteJugador->setOpacity(1.0f - (tRecJug / 0.5f) * 0.7f);
+        } else {
+            spriteJugador->setOpacity(1.0f);
+        }
     }
 
     const QList<Enemigo*>& enemigos = engine->getEnemigos();
@@ -555,35 +651,71 @@ void MainWindow::sincronizarSprites()
         }
         spritesPortalesNivel2.clear();
 
-        // Levy
+        // ── Angstrom Levy ──────────────────────────────────────────
         if (!enemigos.isEmpty() && spriteLevy) {
-            Enemigo* levy = enemigos[0];
-            spriteLevy->setPos(levy->getX(), levy->getY());
-            spriteLevy->setVisible(levy->isActivo());
+            AngstromLevy* levy = dynamic_cast<AngstromLevy*>(enemigos[0]);
 
-            if (jug && levy->isActivo()) {
-                float dx   = levy->getX() - jug->getX();
-                float dy   = levy->getY() - jug->getY();
-                float dist = std::sqrt(dx * dx + dy * dy);
-                bool levyMiraDerecha = jug->getX() > levy->getX();
+            if (levy) {
+                spriteLevy->setPos(levy->getX(), levy->getY());
+                spriteLevy->setVisible(levy->isActivo());
 
-                if (dist < 80.0f && !levyGolpeando) {
-                    levyGolpeando     = true;
-                    contadorLevyGolpe = 0;
-                    spriteLevy->setPixmap(
-                        levyMiraDerecha ? pixLevyGolpe : pixLevyGolpeIzq);
-                } else if (!levyGolpeando) {
-                    spriteLevy->setPixmap(
-                        levyMiraDerecha ? pixLevyNormal : pixLevyNormalIzq);
-                }
+                if (jug && levy->isActivo()) {
+                    // 1. Orientación (Lee de la capa lógica)
+                    float vxLevy = levy->getVelX();
+                    bool levyMiraDerecha = true;
 
-                if (levyGolpeando) {
-                    contadorLevyGolpe++;
-                    if (contadorLevyGolpe >= 12) {
-                        levyGolpeando     = false;
+                    if (vxLevy > 0.01f) {
+                        levyMiraDerecha = true;
+                    } else if (vxLevy < -0.01f) {
+                        levyMiraDerecha = false;
+                    } else {
+                        // Si está estático en X, por lógica siempre mira al jugador
+                        levyMiraDerecha = (jug->getX() > levy->getX());
+                    }
+
+                    // 2. Transiciones de Estado
+                    float dx = levy->getX() - jug->getX();
+                    float dy = levy->getY() - jug->getY();
+                    float dist = std::sqrt(dx * dx + dy * dy);
+
+                    // Si está cerca, inicia el ataque
+                    if (dist < 80.0f && !levyGolpeando) {
+                        levyGolpeando = true;
                         contadorLevyGolpe = 0;
-                        spriteLevy->setPixmap(
-                            levyMiraDerecha ? pixLevyNormal : pixLevyNormalIzq);
+                    }
+
+                    if (levyGolpeando) {
+                        // ESTADO: ATACANDO
+                        spriteLevy->setPixmap(levyMiraDerecha ? pixLevyGolpe : pixLevyGolpeIzq);
+
+                        contadorLevyGolpe++;
+                        if (contadorLevyGolpe >= 12) {
+                            levyGolpeando = false;
+                            contadorLevyGolpe = 0;
+                        }
+                    } else {
+                        // ESTADO: MOVIMIENTO O QUIETO
+                        bool moviendoXLevy = std::abs(vxLevy) > 0.01f;
+                        bool moviendoYLevy = std::abs(levy->getVelY()) > 0.01f;
+
+                        if (moviendoXLevy || moviendoYLevy) {
+                            // ESTADO: CAMINANDO
+                            // Usamos el reloj global para crear la animación (cambia de frame cada 150ms)
+                            if ((reloj.elapsed() / 150) % 2 == 0) {
+                                spriteLevy->setPixmap(levyMiraDerecha ? pixLevyNormal : pixLevyNormalIzq);
+                            } else {
+                                spriteLevy->setPixmap(levyMiraDerecha ? pixLevyWalk : pixLevyWalkIzq);
+                            }
+                        } else {
+                            // ESTADO: BASE / QUIETO
+                            spriteLevy->setPixmap(levyMiraDerecha ? pixLevyNormal : pixLevyNormalIzq);
+                        }
+                    }
+                    float tRecLevy = levy->getTiempoRecuperacionGolpe();
+                    if (tRecLevy > 0.0f) {
+                        spriteLevy->setOpacity(1.0f - (tRecLevy / 0.5f) * 0.7f);
+                    } else {
+                        spriteLevy->setOpacity(1.0f);
                     }
                 }
             }
@@ -622,12 +754,8 @@ void MainWindow::sincronizarSprites()
         }
         spritesPortalesNivel2.clear();
 
-        QPixmap pixVariante = QPixmap(":/sprites/Sprites/Capevincible_85x85.png")
-                                  .scaled(60, 80, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        QPixmap pixVoladora = QPixmap(":/sprites/Sprites/Viltrumincible_85x85.png")
-                                  .scaled(50, 50, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-
         int indexHUD = 0;
+        Jugador* jug = engine->getJugador();
 
         for (Enemigo* e : enemigos) {
             if (!e->isActivo()) continue;
@@ -636,7 +764,80 @@ void MainWindow::sincronizarSprites()
             if (e->isVisible()) {
                 QGraphicsPixmapItem* spr = new QGraphicsPixmapItem();
                 VariantePortal* vp = dynamic_cast<VariantePortal*>(e);
-                spr->setPixmap(vp ? pixVoladora : pixVariante);
+
+                if (vp) {
+                    float vx = vp->getVelX();
+                    float vy = vp->getVelY();
+
+                    // 1. Orientación: sigue la velocidad horizontal;
+                    //    si solo se mueve en Y, mira hacia el jugador
+                    bool mirandoDer = (vx >= 0.0f);
+                    if (std::abs(vx) < 0.01f && jug) {
+                        mirandoDer = (jug->getX() > vp->getX());
+                    }
+
+                    // 2. Estado: ataque cuando está cerca del jugador
+                    bool atacando = false;
+                    if (jug) {
+                        float dx   = vp->getX() - jug->getX();
+                        float dy   = vp->getY() - jug->getY();
+                        float dist = std::sqrt(dx * dx + dy * dy);
+                        if (dist < 80.0f) atacando = true;
+                    }
+
+                    // 3. Selección de sprite
+                    if (atacando) {
+                        spr->setPixmap(mirandoDer ? pixVariantePortalAttack : pixVariantePortalAttackIzq);
+                    } else if (std::abs(vx) > 0.01f || std::abs(vy) > 0.01f) {
+                        spr->setPixmap(mirandoDer ? pixVariantePortalWalk : pixVariantePortalWalkIzq);
+                    } else {
+                        spr->setPixmap(pixVariantePortalBase);
+                    }
+                } else {
+                    // Caso B: Es una variante de combate terrestre estándar (Variante)
+                    Variante* v = dynamic_cast<Variante*>(e);
+                    if (v) {
+                        float vx = v->getVelX();
+                        bool mirandoALaDerecha = true;
+
+                        // 1. Determinar orientación horizontal (frente)
+                        if (vx > 0.01f) {
+                            mirandoALaDerecha = true;
+                        } else if (vx < -0.01f) {
+                            mirandoALaDerecha = false;
+                        } else {
+                            // Si está estático en X (quieto o moviéndose solo verticalmente),
+                            // por diseño de juego mira siempre hacia donde esté parado el jugador
+                            if (jug) {
+                                mirandoALaDerecha = (jug->getX() > v->getX());
+                            }
+                        }
+
+                        // 2. Asignación del Sprite según el Estado Lógico (Capa de Lógica)
+                        if (v->getEstado() == Variante::Estado::ATACAR) {
+                            // Estado de Ataque
+                            spr->setPixmap(mirandoALaDerecha ? pixVarianteAttack : pixVarianteAttackIzq);
+                        } else {
+                            // Estado Rodear / Movimiento pasivo
+                            if (std::abs(vx) < 0.01f) {
+                                // Quieto o desplazándose ÚNICAMENTE hacia arriba o abajo
+                                spr->setPixmap(pixVarianteBase);
+                            } else {
+                                // Desplazándose activamente de forma horizontal
+                                spr->setPixmap(mirandoALaDerecha ? pixVarianteWalk : pixVarianteWalkIzq);
+                            }
+                        }
+                    } else {
+                        spr->setPixmap(pixVarianteBase);
+                    }
+                }
+                float tRecV = e->getTiempoRecuperacionGolpe();
+                if (tRecV > 0.0f) {
+                    spr->setOpacity(1.0f - (tRecV / 0.5f) * 0.7f);
+                } else {
+                    spr->setOpacity(1.0f);
+                }
+
                 spr->setPos(e->getX(), e->getY());
                 spr->setZValue(2);
                 escena->addItem(spr);
@@ -905,7 +1106,7 @@ void MainWindow::dibujarMenuPrincipal()
     escena->addItem(fondo);
     itemsMenu.append(fondo);
 
-    QGraphicsTextItem* titulo = new QGraphicsTextItem("INVINCIBLE KICKBOXER");
+    QGraphicsTextItem* titulo = new QGraphicsTextItem("INVINCIBLE KICKBOXING");
     titulo->setDefaultTextColor(QColor(255, 200, 0));
     titulo->setFont(QFont("Arial", 32, QFont::Bold));
     titulo->setPos(80, 120);

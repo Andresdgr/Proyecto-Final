@@ -82,7 +82,7 @@ void GameEngine::iniciarNivel(uint8_t nivel)
             if (i == 2 || i == 5) {
                 v = new VariantePortal(-1000.0f, -1000.0f,
                                        300.0f, 75.0f,
-                                       config.danioLevy * 0.3f, 150);
+                                       config.danioLevy * 0.4f, 150);
             } else {
                 v = new Variante(-1000.0f, -1000.0f,
                                  500.0f, 75.0f,
@@ -114,9 +114,15 @@ void GameEngine::update(float dt)
     physics.setDt(dt);
 
     if (jugador && jugador->isActivo()) {
+        jugador->reducirTiempoRecuperacion(dt);
         jugador->update(dt);
-        // Agente inteligente percibe posición del jugador
         VariantePortal::percibir(jugador->getX(), jugador->getY());
+    }
+
+    for (Enemigo* e : std::as_const(enemigos)) {
+        if (e->isActivo()) {
+            e->reducirTiempoRecuperacion(dt);
+        }
     }
 
     if      (nivelActivo == 1) actualizarNivel1(dt);
@@ -245,10 +251,10 @@ void GameEngine::aplicarAtaqueJugador()
             if (levy) {
                 levy->recibirImpacto(dirX);
             } else if (varPortal) {
-                varPortal->setVelocidad(-varPortal->getVelX() * 1.5f,
-                                        -varPortal->getVelY() * 1.5f);
-                varPortal->setPosicion(varPortal->getX() + dirX * 30.0f,
-                                       varPortal->getY() + dirY * 30.0f);
+                varPortal->setVelocidad(varPortal->getVelX() * 1.2f,
+                                        varPortal->getVelY() * 1.2f);
+                varPortal->setPosicion(varPortal->getX() + dirX * 20.0f,
+                                       varPortal->getY() + dirY * 20.0f);
             } else {
                 e->setPosicion(e->getX() + dirX * 50.0f,
                                e->getY() + dirY * 20.0f);
@@ -466,8 +472,8 @@ void GameEngine::spawnVoladora()
             float magnitud = std::sqrt(dx * dx + dy * dy);
 
             if (magnitud > 0.0f) {
-                vp->setVelocidad((dx / magnitud) * 370.0f,
-                                 (dy / magnitud) * 370.0f);
+                vp->setVelocidad((dx / magnitud) * 200.0f,
+                                 (dy / magnitud) * 200.0f);
             }
             vp->show();
             totalVariantesSpawneadas++;

@@ -43,7 +43,7 @@ void Variante::update(float dt, const Jugador& jugador)
     float dist = std::sqrt(dx * dx + dy * dy);
 
     if (dist > 5.0f) {
-        float velActual = (estado == Estado::ATACAR) ? 120.0f : 80.0f;
+        float velActual = (estado == Estado::ATACAR) ? 200.0f : 150.0f;
         velX = (dx / dist) * velActual * 1.5f;
         velY = (dy / dist) * velActual * 1.5f;
     } else {

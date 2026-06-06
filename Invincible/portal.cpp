@@ -36,7 +36,7 @@ Portal::Portal(float cx, float cy, float radioOrbital,
     , fase(fase)
     , esPuntoSpawn(true)
 {
-    setPixmap(QPixmap(":/sprites/assets/sprites/Portal.png")
+    setPixmap(QPixmap(":/sprites/Sprites/sprites/Portal.png")
                   .scaled(40, 40, Qt::KeepAspectRatio, Qt::SmoothTransformation));
 }
 

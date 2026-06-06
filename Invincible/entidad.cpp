@@ -11,6 +11,7 @@ Entidad::Entidad(float x, float y, float vida, float masa, QGraphicsItem* parent
     , vidaMaxima(vida)
     , masa(masa)
     , activo(true)
+    , tiempoRecuperacionGolpe(0.0f)
 {
     // Sincronizar las coordenadas iniciales matemáticas con las gráficas
     setPos(x, y);
@@ -27,6 +28,7 @@ void Entidad::recibirDanio(float cantidad)
     if (!activo) return;
 
     vida -= cantidad;
+    tiempoRecuperacionGolpe = 0.5f;
 
     if (vida <= 0.0f) {
         vida   = 0.0f;
@@ -69,4 +71,15 @@ void Entidad::limitarBordes(float limiteX, float limiteY, float anchoSprite, flo
 
     if (y < 0.0f) y = 0.0f;
     if (y > limiteY - altoSprite) y = limiteY - altoSprite;
+}
+
+float Entidad::getTiempoRecuperacionGolpe() const {
+    return tiempoRecuperacionGolpe;
+}
+
+void Entidad::reducirTiempoRecuperacion(float dt) {
+    if (tiempoRecuperacionGolpe > 0.0f) {
+        tiempoRecuperacionGolpe -= dt;
+        if (tiempoRecuperacionGolpe < 0.0f) tiempoRecuperacionGolpe = 0.0f;
+    }
 }

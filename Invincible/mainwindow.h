@@ -76,10 +76,26 @@ private:
     // ── Pixmaps Levy ──────────────────────────────────────────
     QPixmap                pixLevyNormal;
     QPixmap                pixLevyNormalIzq;
+    QPixmap                pixLevyWalk;
+    QPixmap                pixLevyWalkIzq;
     QPixmap                pixLevyGolpe;
     QPixmap                pixLevyGolpeIzq;
     bool                   levyGolpeando;
     int                    contadorLevyGolpe;
+
+    // ── Pixmaps Variantes Nivel 2 ────────────────────────────
+    QPixmap                pixVarianteBase;
+    QPixmap                pixVarianteWalk;
+    QPixmap                pixVarianteWalkIzq;
+    QPixmap                pixVarianteAttack;
+    QPixmap                pixVarianteAttackIzq;
+
+    // Sprites VariantePortal
+    QPixmap pixVariantePortalBase;
+    QPixmap pixVariantePortalWalk;
+    QPixmap pixVariantePortalWalkIzq;
+    QPixmap pixVariantePortalAttack;
+    QPixmap pixVariantePortalAttackIzq;
 
     // ── HUD ──────────────────────────────────────────────────
     QGraphicsRectItem*         barraVidaJugador;
