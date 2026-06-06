@@ -16,5 +16,12 @@
         <file>assets/sprites/invinsibleGolpeSinFondo.png</file>
         <file>assets/sprites/Viltrumincible_85x85.png</file>
         <file>assets/sprites/levi_golpe.png</file>
+        <file>soundtrack/golpe.wav</file>
+        <file>soundtrack/Tom_tom.wav</file>
+        <file>soundtrack/win.wav</file>
+        <file>soundtrack/lo2se.wav</file>
+        <file>soundtrack/lose.wav</file>
+        <file>soundtrack/levy.wav</file>
+        <file>soundtrack/win2.wav</file>
     </qresource>
 </RCC>

@@ -225,11 +225,27 @@ void GameEngine::aplicarAtaqueJugador()
             e->recibirDanio(jugador->getDanioActual());
             estado.sumarPuntos(10);
 
-            // Impulso parabólico solo para AngstromLevy
+            // FÍSICA DE IMPACTO
+            // 1. Calculamos la dirección del golpe (1.0 = Derecha, -1.0 = Izquierda)
+            float dirX = (e->getX() > xJ) ? 1.0f : -1.0f;
+            float dirY = (e->getY() > yJ) ? 1.0f : -1.0f;
+
+            // 2. El jugador (atacante) se va un POCO para atrás
+            jugador->setPosicion(jugador->getX() - dirX * 15.0f, jugador->getY());
+
+            // 3. Efectos en quien recibe el golpe
             AngstromLevy* levy = dynamic_cast<AngstromLevy*>(e);
+            VariantePortal* varPortal = dynamic_cast<VariantePortal*>(e);
+
             if (levy) {
-                float dirX = (e->getX() > xJ) ? 1.0f : -1.0f;
                 levy->recibirImpacto(dirX);
+            } else if (varPortal) {
+                // Variante Portal recibe golpe: Cambio de dirección MUY pronunciado y empujón
+                varPortal->setVelocidad(-varPortal->getVelX() * 1.5f, -varPortal->getVelY() * 1.5f);
+                varPortal->setPosicion(varPortal->getX() + dirX * 30.0f, varPortal->getY() + dirY * 30.0f);
+            } else {
+                // Variante Normal recibe golpe: Se mueve MUCHO para atrás
+                e->setPosicion(e->getX() + dirX * 50.0f, e->getY() + dirY * 20.0f);
             }
         }
     }
@@ -263,12 +279,35 @@ void GameEngine::verificarColisiones()
                         jArriba < eAbajo;
 
         if (colision) {
+            // Guardamos el estado previo para saber si el golpe realmente conectó
+            bool eraInvulnerable = jugador->isInvulnerable();
             jugador->recibirDanio(e->getDanio());
 
-            // Aprendizaje
+            if (!eraInvulnerable) {
+                // FÍSICA DE IMPACTO
+                // Calculamos la dirección del impacto hacia el jugador
+                float dirX = (xJ > e->getX()) ? 1.0f : -1.0f;
+                float dirY = (yJ > e->getY()) ? 1.0f : -1.0f;
+
+                // 1. El jugador recibe el golpe y retrocede
+                jugador->setPosicion(jugador->getX() + dirX * 45.0f, jugador->getY() + dirY * 15.0f);
+
+                // 2. El atacante sufre un comportamiento distinto
+                VariantePortal* varPortal = dynamic_cast<VariantePortal*>(e);
+
+                if (varPortal) {
+                    // Variante Portal dando el golpe: Cambia un poco de dirección
+                    varPortal->setVelocidad(varPortal->getVelX() * -0.6f, varPortal->getVelY() * 0.8f);
+                } else {
+                    // Levy o Variante Normal dando el golpe: Retroceden un poco
+                    e->setPosicion(e->getX() - dirX * 12.0f, e->getY());
+                }
+            }
+
+            // Aprendizaje de la Variante Portal
             VariantePortal* vp = dynamic_cast<VariantePortal*>(e);
             if (vp && !vp->getImpacto()) {
-                vp->setImpacto(true); // Evita sumar doble recompensa
+                vp->setImpacto(true);
                 VariantePortal::aprender(vp->getZonaOrigen(), 1.0f);
             }
         }

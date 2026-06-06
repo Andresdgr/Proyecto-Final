@@ -83,6 +83,7 @@ private:
     QGraphicsTextItem*     textoPuntos;
     QGraphicsTextItem*     textoTiempo;
     QList<QGraphicsRectItem*> barrasVidaEstaticas;
+    QList<QGraphicsTextItem*> etiquetasVariantes;
 
     // ── Pantalla de fin ───────────────────────────────────────
     QGraphicsTextItem*     textoFinJuego;
@@ -129,7 +130,7 @@ private:
     void mostrarPantallaFin(bool victoria);
     void reiniciarJuego();
     void cambiarFondo(int nivel);
-    void cambiarMusica(int nivel);
+    void cambiarMusica(int estadoMusica);
 };
 
 #endif // MAINWINDOW_H
