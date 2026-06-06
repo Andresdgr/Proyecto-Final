@@ -2,7 +2,7 @@
 
 // ── Constructor ─────────────────────────────────────────────────
 Jugador::Jugador(float x, float y)
-    : Entidad(x, y, 100.0f, 75.0f)
+    : Entidad(x, y, 500.0f, 75.0f)
     //, velBase(MULTIPLICADOR_VELO * 3.0f)
     , velBase(200.0f)
     , cargando(false)

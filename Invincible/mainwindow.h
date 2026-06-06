@@ -30,6 +30,7 @@ public:
 protected:
     void keyPressEvent(QKeyEvent *event) override;
     void keyReleaseEvent(QKeyEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
 private slots:
     void onUpdate();
@@ -55,7 +56,7 @@ private:
     QGraphicsPixmapItem*   spriteLevy;
     QGraphicsPixmapItem*   spritePortal;
     QGraphicsPixmapItem*   itemFondo;
-    QList<QGraphicsPixmapItem*> spritesClones;
+    QList<QGraphicsPixmapItem*> spritesVariantes;
 
     // ── Pixmaps jugador ───────────────────────────────────────
     QPixmap                pixJugadorNormal;
@@ -81,6 +82,7 @@ private:
     QGraphicsTextItem*     labelLevy;
     QGraphicsTextItem*     textoPuntos;
     QGraphicsTextItem*     textoTiempo;
+    QList<QGraphicsRectItem*> barrasVidaEstaticas;
 
     // ── Pantalla de fin ───────────────────────────────────────
     QGraphicsTextItem*     textoFinJuego;
@@ -88,13 +90,25 @@ private:
     QGraphicsTextItem*     textoPuntajeFinal;
 
     // ── Menú ──────────────────────────────────────────────────
-    QGraphicsRectItem*     fondoMenu;
-    QGraphicsTextItem*     textoTitulo;
-    QGraphicsTextItem*     textoSubtitulo;
-    QGraphicsTextItem*     textoFacil;
-    QGraphicsTextItem*     textoNormal;
-    QGraphicsTextItem*     textoDificil;
+
+    // HUD Pausa
+    QGraphicsRectItem* btnPausaFondo;
+    QGraphicsTextItem* btnPausaTexto;
+
+    // Sistema de Menús Dinámicos
+    QList<QGraphicsItem*>  itemsMenu;
+    int                    nivelInicioActual;
+    bool                   juegoPausado;
+    bool                   enSubmenuDesdePausa;
     bool                   enMenu;
+
+    // Métodos para gestionar UI
+    void crearBotonPausa();
+    void alternarPausa();
+    void dibujarMenuPrincipal();
+    void dibujarMenuPausa();
+    void dibujarMenuDificultad(bool desdePausa);
+    void limpiarMenusUI();
 
     // ── Audio ─────────────────────────────────────────────────
     QMediaPlayer*          musicaFondo;
@@ -114,8 +128,6 @@ private:
     void procesarInput();
     void mostrarPantallaFin(bool victoria);
     void reiniciarJuego();
-    void mostrarMenu();
-    void ocultarMenu();
     void cambiarFondo(int nivel);
     void cambiarMusica(int nivel);
 };

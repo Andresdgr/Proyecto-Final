@@ -11,10 +11,10 @@ DifficultyConfig DifficultyConfig::facil()
     cfg.amplitudMAS      = 30.0f;
     cfg.omegaMAS         = 1.0f;
 
-    // F3 — Clones lentos
-    cfg.velClonBase      = 60.0f;
-    cfg.aceleracionClon  = 20.0f;
-    cfg.velMaxClon       = 120.0f;
+    // F3 — Variante lentas
+    cfg.velVarianteBase      = 60.0f;
+    cfg.aceleracionVariante  = 20.0f;
+    cfg.velMaxVariante       = 120.0f;
 
     // F5 — Portales orbitales lejos y lentos
     cfg.radioPortalNivel2 = 350.0f;
@@ -42,9 +42,9 @@ DifficultyConfig DifficultyConfig::normal()
     cfg.amplitudMAS      = 50.0f;
     cfg.omegaMAS         = 1.5f;
 
-    cfg.velClonBase      = 90.0f;
-    cfg.aceleracionClon  = 35.0f;
-    cfg.velMaxClon       = 200.0f;
+    cfg.velVarianteBase      = 90.0f;
+    cfg.aceleracionVariante  = 35.0f;
+    cfg.velMaxVariante       = 200.0f;
 
     cfg.radioPortalNivel2 = 250.0f;
     cfg.omegaPortal       = 1.0f;
@@ -70,10 +70,10 @@ DifficultyConfig DifficultyConfig::dificil()
     cfg.amplitudMAS      = 80.0f;
     cfg.omegaMAS         = 2.5f;
 
-    // F3 — Clones rápidos
-    cfg.velClonBase      = 130.0f;
-    cfg.aceleracionClon  = 60.0f;
-    cfg.velMaxClon       = 320.0f;
+    // F3 — Variantes rápidos
+    cfg.velVarianteBase      = 130.0f;
+    cfg.aceleracionVariante  = 60.0f;
+    cfg.velMaxVariante      = 320.0f;
 
     // F5 — Portales orbitales cerca y rápidos
     cfg.radioPortalNivel2 = 160.0f;

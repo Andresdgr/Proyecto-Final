@@ -5,43 +5,49 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <cmath>
+#include <QGraphicsScene>
+#include <utility>
 
-// ── Constructor ─────────────────────────────────────────────────
+// Constructor
 GameEngine::GameEngine(const DifficultyConfig& config)
     : jugador(nullptr)
     , physics(config)
     , config(config)
     , tiempoNivel2(60.0f)
     , tiempoSpawn(0.0f)
-    , tiempoProyectil(0.0f)
+    , tiempoVariantePortal(0.0f)
     , nivelActivo(0)
     , pausado(false)
+    , escena(nullptr)
+    , totalVariantesSpawneadas(0)
 {
+    for (int i = 0; i < 6; ++i) misSeisVariantes[i] = nullptr;
 }
 
-// ── Destructor ───────────────────────────────────────────────────
+// Destructor
 GameEngine::~GameEngine()
 {
     delete jugador;
     jugador = nullptr;
 
-    for (Enemigo* e : enemigos) delete e;
+    for (Enemigo* e : std::as_const(enemigos)) delete e;
     enemigos.clear();
 
-    for (Portal* p : portales) delete p;
+    for (Portal* p : std::as_const(portales)) delete p;
     portales.clear();
 }
 
-// ── iniciarNivel ────────────────────────────────────────────────
-void GameEngine::iniciarNivel(uint8_t nivel)
+// iniciarNivel
+void GameEngine::iniciarNivel(uint8_t nivel, QGraphicsScene* escena)
 {
+    this->escena = escena;
     delete jugador;
     jugador = nullptr;
 
-    for (Enemigo* e : enemigos) delete e;
+    for (Enemigo* e : std::as_const(enemigos)) delete e;
     enemigos.clear();
 
-    for (Portal* p : portales) delete p;
+    for (Portal* p : std::as_const(portales)) delete p;
     portales.clear();
 
     jugador = new Jugador(400.0f, 300.0f);
@@ -61,24 +67,36 @@ void GameEngine::iniciarNivel(uint8_t nivel)
         portales.append(portal);
 
     } else if (nivel == 2) {
-        tiempoNivel2 = 60.0f;
+        tiempoNivel2 = 90.0f; // Tiempo de supervivencia
         tiempoSpawn  = 0.0f;
+        tiempoSpawnVoladoras = 0.0f;
+        frecuenciaSpawnVoladoras = 1.0f; // Disparan cada 1s
+        tiempoFluctuacionPortales = 0.0f;
+        targetPortales = 0;
+        creciendoPortales = true;
         estado.setTiempoRestante(tiempoNivel2);
 
-        // Portal orbital para Nivel 2
-        Portal* portal = new Portal(400.0f, 250.0f,
-                                    config.radioPortalNivel2,
-                                    config.omegaPortal,
-                                    0.0f);
-        portales.append(portal);
-
+        // Instanciar exactamente las 6 variantes
+        for (int i = 0; i < 6; ++i) {
+            Enemigo* v = nullptr;
+            if (i == 2 || i == 5) {
+                // Las 2 variantes voladoras (agentes)
+                v = new VariantePortal(-1000.0f, -1000.0f, 300.0f, 75.0f, 15.0f, 150);
+            } else {
+                // Las 4 variantes de combate normal
+                v = new Variante(-1000.0f, -1000.0f, 500.0f, 75.0f, 10.0f, 100);
+            }
+            v->hide(); // Ocultas por defecto
+            enemigos.append(v);
+            misSeisVariantes[i] = v;
+        }
     } else {
         throw std::invalid_argument(
             "GameEngine::iniciarNivel — nivel debe ser 1 o 2");
     }
 }
 
-// ── update ──────────────────────────────────────────────────────
+// update
 void GameEngine::update(float dt)
 {
     if (pausado) return;
@@ -88,6 +106,8 @@ void GameEngine::update(float dt)
 
     if (jugador && jugador->isActivo()) {
         jugador->update(dt);
+
+        VariantePortal::percibir(jugador->getX(), jugador->getY());
     }
 
     if      (nivelActivo == 1) actualizarNivel1(dt);
@@ -99,58 +119,82 @@ void GameEngine::update(float dt)
     verificarCondicionFin();
 }
 
-// ── Nivel 1 ──────────────────────────────────────────────────────
+//  Nivel 1
 void GameEngine::actualizarNivel1(float dt)
 {
-    for (Enemigo* e : enemigos) {
+    for (Enemigo* e : std::as_const(enemigos)) {
         if (e->isActivo() && jugador) {
             e->update(dt, *jugador);
         }
     }
 
-    for (Portal* p : portales) {
+    for (Portal* p : std::as_const(portales)) {
         if (p->isActivo()) {
             p->updateConPhysics(dt, physics);
         }
     }
 }
 
-// ── Nivel 2 ──────────────────────────────────────────────────────
+// Nivel 2
 void GameEngine::actualizarNivel2(float dt)
 {
     tiempoNivel2 -= dt;
     if (tiempoNivel2 < 0.0f) tiempoNivel2 = 0.0f;
     estado.setTiempoRestante(tiempoNivel2);
 
-    // Spawn variantes — máximo 6
-    if (enemigos.size() < 6) {
-        tiempoSpawn += dt;
-        if (tiempoSpawn >= config.frecuenciaSpawn) {
-            spawnClon();
-            tiempoSpawn = 0.0f;
+    // 1. Dinámica de los portales orbitales
+    gestionarPortalesEntorno(dt);
+
+    // 2. Temporizadores de Spawn separados
+    tiempoSpawn += dt;
+    if (tiempoSpawn >= config.frecuenciaSpawn) {
+        spawnVariante();
+        tiempoSpawn = 0.0f;
+    }
+
+    tiempoSpawnVoladoras += dt;
+    if (tiempoSpawnVoladoras >= frecuenciaSpawnVoladoras) {
+        spawnVoladora();
+        tiempoSpawnVoladoras = 0.0f;
+    }
+
+    // 3. Coordinar Táctica de Enjambre
+    QList<Variante*> enjambre;
+
+    // Censar variantes vivas en pantalla
+    for (Enemigo* e : std::as_const(enemigos)) {
+        Variante* v = dynamic_cast<Variante*>(e);
+        if (v && !dynamic_cast<VariantePortal*>(v) && v->isVisible() && v->getVida() > 0.0f) {
+            enjambre.append(v);
         }
     }
 
-    // Spawn proyectil desde portal cada 3 segundos
-    tiempoProyectil += dt;
-    if (tiempoProyectil >= 3.0f) {
-        spawnProyectil();
-        tiempoProyectil = 0.0f;
+    int cantidad = enjambre.size();
+    if (cantidad > 0) {
+        // Reparte el círculo alrededor del jugador
+        float separacionAngular = (2.0f * 3.14159f) / cantidad;
+        bool hayAtacante = false;
+
+        for (int i = 0; i < cantidad; ++i) {
+            if (enjambre[i]->getEstado() == Variante::Estado::ATACAR) hayAtacante = true;
+            enjambre[i]->setAngulo(i * separacionAngular); // Asigna posición en el cerco [cite: 341]
+        }
+
+        // Otorgar el turno de ataque si nadie lo tiene
+        if (!hayAtacante) {
+            enjambre[rand() % cantidad]->setEstado(Variante::Estado::ATACAR);
+        }
     }
 
-    for (Enemigo* e : enemigos) {
-        if (e->isActivo() && jugador) {
+    // 4. Actualizar estado de los enemigos en pantalla
+    for (Enemigo* e : std::as_const(enemigos)) {
+        if (e->isVisible() && jugador && jugador->isActivo()) {
             e->update(dt, *jugador);
         }
     }
-
-    for (Portal* p : portales) {
-        if (p->isActivo()) {
-            p->updateConPhysics(dt, physics);
-        }
-    }
 }
-// ── aplicarAtaqueJugador ─────────────────────────────────────────
+
+// aplicarAtaqueJugador
 void GameEngine::aplicarAtaqueJugador()
 {
     if (!jugador || !jugador->isActivo()) return;
@@ -164,7 +208,7 @@ void GameEngine::aplicarAtaqueJugador()
     float jArriba = yJ - 10.0f;
     float jAbajo  = yJ + 90.0f;
 
-    for (Enemigo* e : enemigos) {
+    for (Enemigo* e : std::as_const(enemigos)) {
         if (!e->isActivo()) continue;
 
         float eIzq    = e->getX();
@@ -191,7 +235,7 @@ void GameEngine::aplicarAtaqueJugador()
     }
 }
 
-// ── verificarColisiones ──────────────────────────────────────────
+// verificarColisiones
 void GameEngine::verificarColisiones()
 {
     if (!jugador || !jugador->isActivo()) return;
@@ -205,7 +249,7 @@ void GameEngine::verificarColisiones()
     float jAbajo  = yJ + 80.0f;
 
     // Enemigos dañan al jugador por contacto
-    for (Enemigo* e : enemigos) {
+    for (Enemigo* e : std::as_const(enemigos)) {
         if (!e->isActivo()) continue;
 
         float eIzq    = e->getX();
@@ -220,20 +264,29 @@ void GameEngine::verificarColisiones()
 
         if (colision) {
             jugador->recibirDanio(e->getDanio());
+
+            // Aprendizaje
+            VariantePortal* vp = dynamic_cast<VariantePortal*>(e);
+            if (vp && !vp->getImpacto()) {
+                vp->setImpacto(true); // Evita sumar doble recompensa
+                VariantePortal::aprender(vp->getZonaOrigen(), 1.0f);
+            }
         }
     }
 
     // Portal — daño ambiental continuo
-    for (Portal* p : portales) {
-        if (!p->isActivo()) continue;
+    if (nivelActivo == 1) {
+        for (Portal* p : std::as_const(portales)) {
+            if (!p->isActivo()) continue;
 
-        if (p->jugadorTocaBorde(xJ, yJ, 60.0f, 80.0f)) {
-            jugador->recibirDanioAmbiental(config.danioPortal * 0.016f);
+            if (p->jugadorTocaBorde(xJ, yJ, 60.0f, 80.0f)) {
+                jugador->recibirDanioAmbiental(config.danioPortal * 0.016f);
+            }
         }
     }
 }
 
-// ── colisionAABB ─────────────────────────────────────────────────
+// colisionAABB
 bool GameEngine::colisionAABB(float x1, float y1,
                               float x2, float y2,
                               float semi1, float semi2) const
@@ -242,12 +295,42 @@ bool GameEngine::colisionAABB(float x1, float y1,
            (std::abs(y1 - y2) < (semi1 + semi2));
 }
 
-// ── limpiarInactivos ─────────────────────────────────────────────
+//  limpiarInactivos
 void GameEngine::limpiarInactivos()
 {
+    // VariantePortal viva pero que salió de pantalla (vel==0 y oculta)
+    for (Enemigo* e : std::as_const(enemigos)) {
+        VariantePortal* vp = dynamic_cast<VariantePortal*>(e);
+        if (vp && vp->getVida() > 0.0f && vp->getVelX() == 0.0f && !vp->isVisible()) {
+            if (vp->getZonaOrigen() != -1) {
+                if (!vp->getImpacto()) {
+                    VariantePortal::aprender(vp->getZonaOrigen(), 0.0f);
+                }
+                vp->setImpacto(true);
+                vp->setZonaOrigen(-1);   // Permite que sea relanzada
+            }
+        }
+    }
+
     for (int i = enemigos.size() - 1; i >= 0; i--) {
         if (!enemigos[i]->isActivo()) {
+
+            // El agente aprende del error
+            VariantePortal* vp = dynamic_cast<VariantePortal*>(enemigos[i]);
+            if (vp && !vp->getImpacto()) {
+                vp->setImpacto(true); // Evita doble castigo por error
+                VariantePortal::aprender(vp->getZonaOrigen(), 0.0f);
+            }
+
             estado.sumarPuntos(enemigos[i]->getPuntosAlDerrotar());
+            if (nivelActivo == 2) {
+                for (int j = 0; j < 6; ++j) {
+                    if (misSeisVariantes[j] == enemigos[i]) {
+                        misSeisVariantes[j] = nullptr;
+                        break;
+                    }
+                }
+            }
             delete enemigos[i];
             enemigos.removeAt(i);
         }
@@ -261,7 +344,7 @@ void GameEngine::limpiarInactivos()
     }
 }
 
-// ── actualizarGameState ──────────────────────────────────────────
+// actualizarGameState
 void GameEngine::actualizarGameState()
 {
     if (jugador) {
@@ -277,7 +360,7 @@ void GameEngine::actualizarGameState()
     }
 }
 
-// ── verificarCondicionFin ────────────────────────────────────────
+//  verificarCondicionFin
 void GameEngine::verificarCondicionFin()
 {
     if (!jugador || !jugador->isActivo()) {
@@ -290,71 +373,150 @@ void GameEngine::verificarCondicionFin()
         return;
     }
 
-    if (nivelActivo == 2 && tiempoNivel2 <= 0.0f) {
-        estado.setEstado(GameState::EstadoPartida::VICTORIA);
-        return;
+    if (nivelActivo == 2) {
+        if (totalVariantesSpawneadas >= 6) {
+            bool todasDerrotadas = true;
+            for (int i = 0; i < 6; ++i) {
+                if (misSeisVariantes[i] != nullptr && misSeisVariantes[i]->getVida() > 0.0f) {
+                    todasDerrotadas = false;
+                    break;
+                }
+            }
+            if (todasDerrotadas) {
+                estado.setEstado(GameState::EstadoPartida::VICTORIA);
+                return;
+            }
+        }
+
+
+        // CONDICIÓN DE DERROTA: Se acabó el tiempo y aún quedan enemigos en el mapa
+        if (tiempoNivel2 <= 0.0f) {
+            estado.setEstado(GameState::EstadoPartida::DERROTA);
+            return;
+        }
     }
 }
 
-// ── spawnClon ────────────────────────────────────────────────────
-void GameEngine::spawnClon()
-{
-    if (!jugador || !jugador->isActivo()) return;
+//  spawnVariante
+void GameEngine::spawnVariante() {
+    for (Enemigo* e : std::as_const(enemigos)) {
+        Variante* v = dynamic_cast<Variante*>(e);
+        if (v && !dynamic_cast<VariantePortal*>(v) && !v->isVisible() && v->getVida() > 0.0f) {
+            if (!portales.isEmpty()) {
+                int indicePortal = rand() % portales.size();
+                Portal* portalCuna = portales[indicePortal];
 
-    float x, y;
-    int borde = rand() % 4;
+                // Nace exactamente donde está flotando el portal
+                v->setPosicion(portalCuna->getX(), portalCuna->getY());
+            } else {
+                // Respaldo de seguridad si no hay portales
+                float xAleatorio = 100.0f + (rand() % 600);
+                float yAleatorio = 100.0f + (rand() % 400);
+                v->setPosicion(xAleatorio, yAleatorio);
+            }
 
-    switch (borde) {
-    case 0: x = 0.0f;   y = static_cast<float>(rand() % 480); break;
-    case 1: x = 750.0f; y = static_cast<float>(rand() % 480); break;
-    case 2: x = static_cast<float>(rand() % 750); y = 0.0f;   break;
-    case 3: x = static_cast<float>(rand() % 750); y = 480.0f; break;
-    default: x = 0.0f; y = 0.0f;
+            v->show();
+            totalVariantesSpawneadas++;
+            return;
+        }
     }
-
-    Variante* clon = new Variante(x, y,
-                                  50.0f,
-                                  40.0f,
-                                  config.danioLevy * 0.5f,
-                                  50);
-    enemigos.append(clon);
 }
 
-// ── pausar / reanudar ────────────────────────────────────────────
+//  pausar / reanudar
 void GameEngine::pausar()   { pausado = true;  }
 void GameEngine::reanudar() { pausado = false; }
 
-// ── Getters ──────────────────────────────────────────────────────
+// Getters
 const GameState&       GameEngine::getEstado()   const { return estado;   }
 Jugador*               GameEngine::getJugador()  const { return jugador;  }
 const QList<Enemigo*>& GameEngine::getEnemigos() const { return enemigos; }
 const QList<Portal*>&  GameEngine::getPortales() const { return portales; }
 
 
-void GameEngine::spawnProyectil()
-{
-    if (!jugador || !jugador->isActivo()) return;
+void GameEngine::spawnVoladora() {
     if (portales.isEmpty()) return;
 
-    Portal* portal = portales[0];
-    float xP = portal->getX();
-    float yP = portal->getY();
+    // Busca una VariantePortal oculta y viva
+    for (Enemigo* e : std::as_const(enemigos)) {
+        VariantePortal* vp = dynamic_cast<VariantePortal*>(e);
 
-    float dx   = jugador->getX() - xP;
-    float dy   = jugador->getY() - yP;
-    float dist = std::sqrt(dx * dx + dy * dy);
+        // Condiciones: viva, oculta, y NUNCA lanzada antes en este ciclo (zonaOrigen == -1)
+        if (vp && !vp->isVisible() && vp->getVida() > 0.0f && vp->getZonaOrigen() == -1) {
 
-    if (dist < 1.0f) return;
+            // Usamos la mente colmena estática
+            int zonaElegida = VariantePortal::razonar();
+            QPointF posObjetivo = VariantePortal::obtenerCoordenadaPortal(zonaElegida);
 
-    VariantePortal* proy = new VariantePortal(
-        xP, yP,
-        1.0f,
-        1.0f,
-        config.danioLevy * 0.3f,
-        0);
+            int indicePortal = rand() % portales.size();
+            Portal* portalCuna = portales[indicePortal];
 
-    float vel = 300.0f;
-    proy->setVelocidad((dx / dist) * vel, (dy / dist) * vel);
+            vp->setPosicion(portalCuna->getX(), portalCuna->getY());
+            vp->setZonaOrigen(zonaElegida); // Marca que fue lanzada
+            vp->setImpacto(false);
 
-    enemigos.append(proy);
+            float dx = posObjetivo.x() - vp->getX();
+            float dy = posObjetivo.y() - vp->getY();
+            float magnitud = std::sqrt(dx*dx + dy*dy);
+
+            if (magnitud > 0.0f) {
+                vp->setVelocidad((dx / magnitud) * 370.0f, (dy / magnitud) * 370.0f);
+            }
+            vp->show();
+            totalVariantesSpawneadas++;
+            return;
+        }
+    }
+}
+
+void GameEngine::gestionarPortalesEntorno(float dt) {
+    int voladorasVivas = 0;
+    for (Enemigo* e : std::as_const(enemigos)) {
+        VariantePortal* vp = dynamic_cast<VariantePortal*>(e);
+        if (vp && vp->getVida() > 0.0f) voladorasVivas++;
+    }
+
+    int minPortales = 0, maxPortales = 0;
+    if (voladorasVivas >= 2) {
+        minPortales = 5; maxPortales = 7;
+    } else if (voladorasVivas == 1) {
+        minPortales = 2; maxPortales = 4;
+    } else {
+        // Colapsar todo si mataste a los francotiradores
+        for (Portal* p : std::as_const(portales)) delete p;
+        portales.clear();
+        targetPortales = 0;
+        return;
+    }
+
+    if (targetPortales < minPortales) targetPortales = minPortales;
+    if (targetPortales > maxPortales) targetPortales = maxPortales;
+
+    // Fluctuación rítmica cada segundo
+    tiempoFluctuacionPortales += dt;
+    if (tiempoFluctuacionPortales > 1.0f) {
+        tiempoFluctuacionPortales = 0.0f;
+        if (creciendoPortales) {
+            targetPortales++;
+            if (targetPortales >= maxPortales) creciendoPortales = false;
+        } else {
+            targetPortales--;
+            if (targetPortales <= minPortales) creciendoPortales = true;
+        }
+    }
+
+    // Instanciar o borrar portales
+    while (portales.size() < targetPortales) {
+        float faseAleatoria = static_cast<float>(rand() % 360) * 3.14159f / 180.0f;
+        Portal* p = new Portal(380.0f, 250.0f, 320.0f, 1.0f, faseAleatoria);
+        portales.append(p);
+        if (escena) escena->addItem(p);
+    }
+    while (portales.size() > targetPortales && !portales.isEmpty()) {
+        delete portales.takeFirst();
+    }
+
+    // Actualizar movimiento
+    for (Portal* p : std::as_const(portales)) {
+        p->updateConPhysics(dt, physics);
+    }
 }
